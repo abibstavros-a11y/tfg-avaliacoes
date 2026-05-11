@@ -6,6 +6,12 @@
 <title>Sistema de Avaliação — TFG I</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
 
+<!-- EmailJS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+<!-- EmailJS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -254,6 +260,9 @@ tr:last-child td { border-bottom:none; }
 
 /* LOADING */
 .loading { text-align:center; padding:3rem; color:var(--muted); font-size:0.875rem; }
+.btn-turma { padding:9px 20px; border:2px solid var(--border); border-radius:8px; background:var(--surface); font-family:inherit; font-size:0.875rem; font-weight:500; cursor:pointer; color:var(--muted); transition:all 0.2s; }
+.btn-turma:hover { border-color:var(--accent); color:var(--accent); }
+.btn-turma.active { border-color:var(--accent); background:var(--accent); color:white; font-weight:600; }
 
 @media(max-width:600px) {
   .nivel-selector { grid-template-columns:repeat(3,1fr); }
@@ -394,21 +403,34 @@ tr:last-child td { border-bottom:none; }
 
     <!-- TAB UPLOADS -->
     <div class="coord-panel active" id="tab-uploads">
+      <!-- SELETOR DE TURMA -->
+      <div class="card-section">
+        <h3>Turma</h3>
+        <p>Selecione a turma antes de fazer os uploads de alunos e trabalhos.</p>
+        <div style="display:flex;gap:0.75rem">
+          <button class="btn-turma active" id="btn-turma1" onclick="selecionarTurma(1)">📚 Turma 1 — Matutino</button>
+          <button class="btn-turma" id="btn-turma2" onclick="selecionarTurma(2)">📚 Turma 2 — Noturno</button>
+        </div>
+        <div style="font-size:0.78rem;color:var(--muted);margin-top:0.5rem">
+          Turma selecionada: <strong id="turmaAtualLabel">Turma 1 — Matutino</strong>
+        </div>
+      </div>
+
       <div class="card-section">
         <h3>1. Lista de Alunos</h3>
-        <p>CSV com colunas: <code>nome,email</code></p>
+        <p>CSV com colunas: <code>nome,email</code> — os alunos serão vinculados à turma selecionada acima.</p>
         <div class="upload-zone" onclick="document.getElementById('uploadAlunos').click()">
           <input type="file" id="uploadAlunos" accept=".csv" onchange="handleAlunosCSV(this)">
           <div class="icon">👥</div>
           <h4>Clique para selecionar o CSV de alunos</h4>
-          <p>nome,email — um aluno por linha</p>
+          <p>nome,email,turma — um aluno por linha</p>
         </div>
         <div class="upload-status" id="statusAlunos"></div>
       </div>
 
       <div class="card-section">
         <h3>2. Trabalhos — ZIP do Moodle</h3>
-        <p>O sistema extrai os nomes das pastas e cruza com a lista de alunos.</p>
+        <p>O sistema extrai os nomes das pastas e cruza com a lista de alunos da turma selecionada.</p>
         <div class="upload-zone" onclick="document.getElementById('uploadZip').click()">
           <input type="file" id="uploadZip" accept=".zip" onchange="handleZip(this)">
           <div class="icon">📦</div>
@@ -437,6 +459,34 @@ tr:last-child td { border-bottom:none; }
           <div style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;text-align:center">
             Requer configuração do EmailJS — veja o Guia de Configuração
           </div>
+        <div style="margin-top:1rem;padding:0.75rem;background:var(--warn-light);border-radius:8px;font-size:0.78rem;color:var(--warn);line-height:1.6">
+          <strong>Configurar EmailJS:</strong><br>
+          1. Acesse <a href="https://emailjs.com" target="_blank" style="color:var(--warn)">emailjs.com</a> e crie conta gratuita<br>
+          2. Conecte seu Gmail em <strong>Email Services</strong><br>
+          3. Crie um template em <strong>Email Templates</strong> com variáveis: <code>{{to_name}}</code>, <code>{{to_email}}</code>, <code>{{usuario}}</code>, <code>{{senha}}</code>, <code>{{link}}</code><br>
+          4. Copie o <strong>Service ID</strong>, <strong>Template ID</strong> e <strong>Public Key</strong><br>
+          5. Cole nos campos abaixo e clique em Salvar
+        </div>
+        <div style="margin-top:0.75rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
+          <div class="form-group" style="margin:0">
+            <label>Service ID</label>
+            <input type="text" id="ejsService" placeholder="service_xxx" oninput="salvarEmailJS()">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Template Credenciais</label>
+            <input type="text" id="ejsTemplateProf" placeholder="template_xxx" oninput="salvarEmailJS()">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Public Key</label>
+            <input type="text" id="ejsKey" placeholder="xxxxxxxxxxxx" oninput="salvarEmailJS()">
+          </div>
+        </div>
+        <div style="margin-top:0.5rem;display:grid;grid-template-columns:1fr;gap:0.5rem">
+          <div class="form-group" style="margin:0">
+            <label>Template Resultados (para alunos)</label>
+            <input type="text" id="ejsTemplateAluno" placeholder="template_xxx" oninput="salvarEmailJS()">
+          </div>
+        </div>
         </div>
       </div>
     </div>
@@ -445,19 +495,25 @@ tr:last-child td { border-bottom:none; }
     <div class="coord-panel" id="tab-atribuicoes">
       <div class="card-section">
         <h3>Atribuição de Trabalhos aos Avaliadores</h3>
-        <p>Cada trabalho deve ter exatamente 2 avaliadores. Selecione os professores para cada aluno.</p>
+        <p>Cada trabalho deve ter exatamente 2 avaliadores. Filtre por turma para facilitar a atribuição.</p>
+        <div style="display:flex;gap:0.75rem;margin-bottom:1rem">
+          <button class="btn-turma active" id="filtro-todas" onclick="filtrarAtrib('todas')">Todas as turmas</button>
+          <button class="btn-turma" id="filtro-turma1" onclick="filtrarAtrib('1')">Turma 1</button>
+          <button class="btn-turma" id="filtro-turma2" onclick="filtrarAtrib('2')">Turma 2</button>
+        </div>
         <div class="table-wrap">
           <table id="atribTable">
             <thead>
               <tr>
                 <th>Aluno</th>
+                <th>Turma</th>
                 <th>Código</th>
                 <th>Avaliador 1</th>
                 <th>Avaliador 2</th>
               </tr>
             </thead>
             <tbody id="atribBody">
-              <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem">
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">
                 Faça o upload dos dados na aba Uploads primeiro.
               </td></tr>
             </tbody>
@@ -476,8 +532,12 @@ tr:last-child td { border-bottom:none; }
         <p>Médias calculadas automaticamente quando ambos os avaliadores finalizaram.</p>
         <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.75rem">
           <button class="btn-primary" style="width:auto;padding:9px 20px" onclick="loadResultados()">🔄 Atualizar</button>
+          <button class="btn-secondary" style="padding:9px 20px" onclick="filtrarResultados('todas')">Todas</button>
+          <button class="btn-secondary" style="padding:9px 20px" onclick="filtrarResultados('Matutino')">☀️ Matutino</button>
+          <button class="btn-secondary" style="padding:9px 20px" onclick="filtrarResultados('Noturno')">🌙 Noturno</button>
+          <button class="btn-secondary" style="padding:9px 20px;color:var(--accent);border-color:var(--accent)" onclick="exportarResultados()">⬇️ Exportar CSV</button>
           <button class="btn-save" style="padding:9px 20px" onclick="liberarResultados()">
-            📧 Liberar e Enviar Resultados aos Alunos
+            📧 Liberar e Enviar Resultados
           </button>
         </div>
         <div id="liberarStatus" style="display:none;margin-top:0.75rem;font-size:0.8rem;padding:0.6rem 1rem;border-radius:7px"></div>
@@ -573,6 +633,28 @@ let dbAlunos = {};
 let dbTrabalhos = {};
 let dbProfessores = {};
 let dbAtribuicoes = {};
+let turmaAtual = "1"; // turma selecionada no upload
+
+function selecionarTurma(n) {
+  turmaAtual = String(n);
+  document.querySelectorAll(".btn-turma[id^='btn-turma']").forEach(b => b.classList.remove("active"));
+  document.getElementById(`btn-turma${n}`).classList.add("active");
+  document.getElementById("turmaAtualLabel").textContent =
+    n === 1 ? "Turma 1 — Matutino" : "Turma 2 — Noturno";
+  // Limpar status de uploads ao trocar turma
+  ["statusAlunos","statusZip"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.className = "upload-status"; el.textContent = ""; }
+  });
+}
+
+function filtrarAtrib(turma) {
+  document.querySelectorAll(".btn-turma[id^='filtro']").forEach(b => b.classList.remove("active"));
+  document.getElementById(`filtro-${turma === "todas" ? "todas" : "turma"+turma}`).classList.add("active");
+  document.querySelectorAll("#atribBody tr[data-turma]").forEach(tr => {
+    tr.style.display = (turma === "todas" || tr.dataset.turma === turma) ? "" : "none";
+  });
+}
 
 // ══════════════════════════════════════════════════════
 // FIREBASE HELPERS
@@ -1080,34 +1162,66 @@ function handleAlunosCSV(input) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = async e => {
-    const lines = e.target.result.trim().split("\n").filter(l=>l.trim());
+    const lines = e.target.result.trim().split("
+").filter(l=>l.trim());
     const alunos = {};
-    let count = 0;
+    let count = 0, matutino = 0, noturno = 0;
     lines.forEach((line, i) => {
-      if (i===0 && line.toLowerCase().includes("nome")) return; // header
+      if (i===0 && line.toLowerCase().includes("nome")) return;
       const parts = line.split(",").map(s=>s.trim());
       if (parts.length < 2) return;
       const id = "A" + String(i).padStart(3,"0");
-      alunos[id] = { nome: parts[0], email: parts[1], codigo: "TFG-" + String(i).padStart(3,"0") };
+      const turma = parts[2] || "Não informada";
+      alunos[id] = { nome:parts[0], email:parts[1], turma, codigo:"TFG-"+String(i).padStart(3,"0") };
+      if (turma.toLowerCase().includes("matutino")) matutino++;
+      else if (turma.toLowerCase().includes("noturno")) noturno++;
       count++;
     });
     dbAlunos = alunos;
     const ok = await dbWrite("alunos", alunos);
     const st = document.getElementById("statusAlunos");
     st.className = "upload-status ok";
-    st.textContent = `✓ ${count} aluno(s) carregado(s)${ok ? " e salvo(s) no Firebase" : " (Firebase não configurado)"}`;
+    st.textContent = `✓ ${count} aluno(s) · Matutino: ${matutino} · Noturno: ${noturno}${ok?" · Firebase ok":" · Firebase não configurado"}`;
   };
   reader.readAsText(file);
 }
 
+
 function handleZip(input) {
-  // Em produção: usa JSZip para descompactar e extrair nomes
-  // Aqui simulamos o feedback
   const file = input.files[0];
   if (!file) return;
+  const turma = document.getElementById("zipTurma").value;
   const st = document.getElementById("statusZip");
   st.className = "upload-status ok";
-  st.textContent = `✓ ZIP recebido: ${file.name} — em produção, os PDFs seriam extraídos e vinculados aos alunos automaticamente.`;
+  st.textContent = `✓ ZIP recebido: ${file.name} · Turma: ${turma} — em produção, os PDFs seriam extraídos e vinculados automaticamente.`;
+}
+
+function salvarEmailJS() {
+  localStorage.setItem("ejs_service",       document.getElementById("ejsService")?.value || "");
+  localStorage.setItem("ejs_template_prof", document.getElementById("ejsTemplateProf")?.value || "");
+  localStorage.setItem("ejs_template_aluno",document.getElementById("ejsTemplateAluno")?.value || "");
+  localStorage.setItem("ejs_key",           document.getElementById("ejsKey")?.value || "");
+}
+
+function carregarEmailJS() {
+  const s  = localStorage.getItem("ejs_service") || "";
+  const tp = localStorage.getItem("ejs_template_prof") || "";
+  const ta = localStorage.getItem("ejs_template_aluno") || "";
+  const k  = localStorage.getItem("ejs_key") || "";
+  const f  = id => document.getElementById(id);
+  if (f("ejsService"))       f("ejsService").value = s;
+  if (f("ejsTemplateProf"))  f("ejsTemplateProf").value = tp;
+  if (f("ejsTemplateAluno")) f("ejsTemplateAluno").value = ta;
+  if (f("ejsKey"))           f("ejsKey").value = k;
+}
+
+function getEmailJSConfig() {
+  return {
+    service:       localStorage.getItem("ejs_service") || "SEU_SERVICE_ID",
+    templateProf:  localStorage.getItem("ejs_template_prof") || "SEU_TEMPLATE_CREDENCIAIS",
+    templateAluno: localStorage.getItem("ejs_template_aluno") || "SEU_TEMPLATE_RESULTADO",
+    key:           localStorage.getItem("ejs_key") || "SUA_PUBLIC_KEY"
+  };
 }
 
 function gerarSenha(nome, email) {
@@ -1173,21 +1287,23 @@ function handleProfsCSV(input) {
 }
 
 async function enviarCredenciaisProfessores() {
-  // EmailJS — configurar SERVICE_ID, TEMPLATE_ID e PUBLIC_KEY no guia
-  const EMAILJS_SERVICE  = "SEU_SERVICE_ID";
-  const EMAILJS_TEMPLATE = "SEU_TEMPLATE_CREDENCIAIS";
-  const EMAILJS_KEY      = "SUA_PUBLIC_KEY";
+  const { service: EMAILJS_SERVICE, templateProf: EMAILJS_TEMPLATE, key: EMAILJS_KEY } = getEmailJSConfig();
   const SISTEMA_URL      = window.location.href;
 
   const profs = Object.entries(dbProfessores).filter(([,p])=>!p.isCoord);
   if (profs.length === 0) { showToast("⚠️ Nenhum professor carregado."); return; }
 
   if (EMAILJS_SERVICE === "SEU_SERVICE_ID") {
-    // Modo sem EmailJS: mostrar modal com instruções manuais
+    // Modo sem EmailJS: copiar para área de transferência
     const linhas = profs.map(([id,p])=>
-      `${p.nome} | usuário: ${id} | senha: ${p.senha} | ${p.email}`
-    ).join("\n");
-    alert("EmailJS não configurado.\n\nCredenciais para enviar manualmente:\n\n" + linhas + "\n\nLink do sistema: " + SISTEMA_URL);
+      `Para: ${p.email}\nNome: ${p.nome}\nUsuário: ${id}\nSenha: ${p.senha}\nLink: ${SISTEMA_URL}\n`
+    ).join("\n---\n\n");
+    try {
+      await navigator.clipboard.writeText(linhas);
+      showToast("📋 Credenciais copiadas! Cole no seu e-mail e envie manualmente.");
+    } catch {
+      alert("Credenciais para envio manual:\n\n" + linhas);
+    }
     return;
   }
 
@@ -1235,9 +1351,12 @@ async function loadAtribTable() {
     const a = alunos[aid];
     const tid = "T" + aid.slice(1);
     const at = atrib[tid] || {};
+    const turmaStr = String(a.turma || "1");
     const tr = document.createElement("tr");
+    tr.dataset.turma = turmaStr;
     tr.innerHTML = `
       <td><strong>${a.nome}</strong><br><small style="color:var(--muted)">${a.email}</small></td>
+      <td><span style="font-size:0.75rem;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:10px;font-weight:600">${a.turmaLabel || "Turma "+turmaStr}</span></td>
       <td>${a.codigo}</td>
       <td>
         <select class="select-prof" id="av1-${tid}">
@@ -1272,13 +1391,23 @@ async function salvarAtribuicoes() {
 // ══════════════════════════════════════════════════════
 // COORDENADOR — RESULTADOS
 // ══════════════════════════════════════════════════════
+let _resultFiltro = "todas";
+
+function filtrarResultados(turma) {
+  _resultFiltro = turma;
+  document.querySelectorAll(".result-card").forEach(card => {
+    const t = card.dataset.turma || "";
+    card.style.display = (turma === "todas" || t === turma) ? "" : "none";
+  });
+}
+
 async function loadResultados() {
   const grid = document.getElementById("resultsGrid");
   grid.innerHTML = `<div class="loading">Carregando...</div>`;
 
-  const alunos = await dbRead("alunos") || dbAlunos;
-  const atrib = await dbRead("atribuicoes") || dbAtribuicoes;
-  const avaliacoes = await dbRead("avaliacoes") || {};
+  const alunos     = await dbRead("alunos")      || dbAlunos;
+  const atrib      = await dbRead("atribuicoes")  || dbAtribuicoes;
+  const avaliacoes = await dbRead("avaliacoes")   || {};
 
   grid.innerHTML = "";
 
@@ -1288,43 +1417,129 @@ async function loadResultados() {
     return;
   }
 
-  alunoIds.forEach(aid => {
-    const a = alunos[aid];
-    const tid = "T" + aid.slice(1);
-    const at = atrib[tid] || {};
-    const ev1 = at.av1 ? (avaliacoes[tid]||{})[at.av1] : null;
-    const ev2 = at.av2 ? (avaliacoes[tid]||{})[at.av2] : null;
+  // Agrupar por turma
+  const turmas = ["Matutino", "Noturno", "Sem turma"];
+  turmas.forEach(turmaAtual => {
+    const alunosDaTurma = alunoIds.filter(aid => {
+      const t = alunos[aid].turma || "Sem turma";
+      return t === turmaAtual;
+    });
+    if (alunosDaTurma.length === 0) return;
 
-    const n1 = ev1 ? calcTotalFromEv(ev1) : null;
-    const n2 = ev2 ? calcTotalFromEv(ev2) : null;
-    const media = (n1!==null && n2!==null) ? ((n1+n2)/2) : null;
+    const turmaColor = turmaAtual === "Matutino" ? "#c9a84c" : turmaAtual === "Noturno" ? "#3a5bbf" : "#999";
+    const turmaIcon  = turmaAtual === "Matutino" ? "☀️" : turmaAtual === "Noturno" ? "🌙" : "📋";
 
-    const card = document.createElement("div");
-    card.className = "result-card";
-    card.innerHTML = `
-      <h4>${a.nome} <small style="color:var(--muted);font-weight:400">— ${a.codigo}</small></h4>
-      <div class="result-scores">
-        <div class="result-score">
-          <span class="rs-label">Avaliador 1: </span>
-          <span class="rs-val ${n1!==null&&n1<7?'low':''}">${n1!==null?n1.toFixed(1):"Pendente"}</span>
+    // Cabeçalho da turma
+    const header = document.createElement("div");
+    header.style.cssText = `font-weight:700;font-size:0.8rem;letter-spacing:0.08em;text-transform:uppercase;color:${turmaColor};padding:0.5rem 0 0.25rem;margin-top:0.5rem;border-bottom:2px solid ${turmaColor}22;margin-bottom:0.5rem`;
+    header.textContent = `${turmaIcon} Turma ${turmaAtual}`;
+    header.dataset.turmaHeader = turmaAtual;
+    grid.appendChild(header);
+
+    alunosDaTurma.forEach(aid => {
+      const a   = alunos[aid];
+      const tid = "T" + aid.slice(1);
+      const at  = atrib[tid] || {};
+      const ev1 = at.av1 ? (avaliacoes[tid]||{})[at.av1] : null;
+      const ev2 = at.av2 ? (avaliacoes[tid]||{})[at.av2] : null;
+      const n1  = ev1 ? calcTotalFromEv(ev1) : null;
+      const n2  = ev2 ? calcTotalFromEv(ev2) : null;
+      const media = (n1!==null && n2!==null) ? ((n1+n2)/2) : null;
+
+      const card = document.createElement("div");
+      card.className = "result-card";
+      card.dataset.turma = turmaAtual;
+      card.style.display = (_resultFiltro === "todas" || _resultFiltro === turmaAtual) ? "" : "none";
+      card.innerHTML = `
+        <h4>
+          ${a.nome}
+          <small style="color:var(--muted);font-weight:400"> — ${a.codigo}</small>
+          <span style="font-size:0.68rem;font-weight:600;color:${turmaColor};margin-left:6px">${turmaIcon} ${turmaAtual}</span>
+        </h4>
+        <div class="result-scores">
+          <div class="result-score">
+            <span class="rs-label">Avaliador 1: </span>
+            <span class="rs-val ${n1!==null&&n1<7?'low':''}">${n1!==null?n1.toFixed(1):"Pendente"}</span>
+          </div>
+          <div class="result-score">
+            <span class="rs-label">Avaliador 2: </span>
+            <span class="rs-val ${n2!==null&&n2<7?'low':''}">${n2!==null?n2.toFixed(1):"Pendente"}</span>
+          </div>
         </div>
-        <div class="result-score">
-          <span class="rs-label">Avaliador 2: </span>
-          <span class="rs-val ${n2!==null&&n2<7?'low':''}">${n2!==null?n2.toFixed(1):"Pendente"}</span>
-        </div>
-      </div>
-      <div>
-        <span style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em">Média Final: </span>
-        <span class="result-avg ${media!==null&&media<7?'low':''}">${media!==null?media.toFixed(1):"—"}</span>
-      </div>`;
-    grid.appendChild(card);
+        <div>
+          <span style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em">Média Final: </span>
+          <span class="result-avg ${media!==null&&media<7?'low':''}">${media!==null?media.toFixed(1):"—"}</span>
+        </div>`;
+      grid.appendChild(card);
+    });
+  });
+
+  // Atualizar cabeçalhos de turma quando filtrar
+  document.querySelectorAll("[data-turma-header]").forEach(h => {
+    const t = h.dataset.turmaHeader;
+    h.style.display = (_resultFiltro === "todas" || _resultFiltro === t) ? "" : "none";
   });
 }
 
+async function exportarResultados() {
+  const alunos    = await dbRead("alunos")     || dbAlunos;
+  const atrib     = await dbRead("atribuicoes") || dbAtribuicoes;
+  const avaliacoes= await dbRead("avaliacoes")  || {};
+  const filtro    = document.getElementById("filtroResultTurma")?.value || "Todas";
+
+  const rows = ["Nome,Email,Turma,Codigo,Avaliador1,Avaliador2,Media"];
+  Object.entries(alunos).forEach(([aid, a]) => {
+    if (filtro !== "Todas" && a.turma !== filtro) return;
+    const tid = "T" + aid.slice(1);
+    const at  = atrib[tid] || {};
+    const ev1 = at.av1 ? (avaliacoes[tid]||{})[at.av1] : null;
+    const ev2 = at.av2 ? (avaliacoes[tid]||{})[at.av2] : null;
+    const n1  = ev1 ? calcTotalFromEv(ev1).toFixed(1) : "Pendente";
+    const n2  = ev2 ? calcTotalFromEv(ev2).toFixed(1) : "Pendente";
+    const media = (ev1 && ev2) ? ((calcTotalFromEv(ev1)+calcTotalFromEv(ev2))/2).toFixed(1) : "—";
+    rows.push(`"${a.nome}","${a.email}","${a.turma||""}","${a.codigo}",${n1},${n2},${media}`);
+  });
+
+  const blob = new Blob([rows.join("\n")], { type:"text/csv;charset=utf-8;" });
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const turmaLabel = filtro === "Todas" ? "todas-turmas" : filtro.toLowerCase();
+  link.href = url;
+  link.download = `resultados-tfg-${turmaLabel}-${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  showToast("✅ CSV exportado!");
+}
+
+function montarFichaAluno(ev, titulo) {
+  if (!ev) return titulo + "\nAvaliação pendente.\n";
+  let ficha = titulo + "\n" + "=".repeat(40) + "\n";
+  CAMPOS.forEach(campo => {
+    const campoEv = ev[campo.id] || {};
+    let pts = 0, count = 0, comps = [];
+    campo.criterios.forEach(c => {
+      const v = campoEv[c.id];
+      if (v !== undefined) { pts += v.pts; count++; }
+      const ck = campo.id + "_" + c.id + "_comment";
+      if (ev[ck]) comps.push("  " + c.nome + ": " + ev[ck]);
+    });
+    const nota = count > 0 ? ((pts/(campo.criterios.length*2.5))*10).toFixed(1) : "—";
+    ficha += "\n" + campo.num + " — " + campo.titulo + ": " + nota + "/10\n";
+    if (comps.length) ficha += comps.join("\n") + "\n";
+  });
+  const tEv = (ev.transversal||{}).org;
+  if (tEv) {
+    ficha += "\nOrganização Geral: " + ((tEv.pts/2.5)*10).toFixed(1) + "/10\n";
+    const tc = ev["transversal_org_comment"];
+    if (tc) ficha += "  " + tc + "\n";
+  }
+  if (ev.generalComment) ficha += "\nComentário Geral:\n" + ev.generalComment + "\n";
+  if (ev.ajusteNota) ficha += "\nNota ajustada: " + ev.ajusteNota + "\n";
+  return ficha;
+}
+
 async function liberarResultados() {
-  const EMAILJS_SERVICE  = "SEU_SERVICE_ID";
-  const EMAILJS_TEMPLATE = "SEU_TEMPLATE_RESULTADO";
-  const EMAILJS_KEY      = "SUA_PUBLIC_KEY";
+  const { service: EMAILJS_SERVICE, templateAluno: EMAILJS_TEMPLATE, key: EMAILJS_KEY } = getEmailJSConfig();
   const SISTEMA_URL      = window.location.href;
 
   const alunos    = await dbRead("alunos")     || dbAlunos;
@@ -1369,13 +1584,18 @@ async function liberarResultados() {
   if (EMAILJS_SERVICE === "SEU_SERVICE_ID") {
     // Modo sem EmailJS: resumo para envio manual
     const resumo = resultados.map(r =>
-      `${r.nome} (${r.email})\n  Nota: ${r.media}\n  Comentários: ${r.comentarios}`
-    ).join("\n\n---\n\n");
-    alert(
-      `${prontos.length} resultado(s) prontos para envio.\n` +
-      (pendentes.length ? `${pendentes.length} ainda pendente(s): ${pendentes.map(r=>r.nome).join(", ")}\n\n` : "\n") +
-      "Resultados para envio manual:\n\n" + resumo
-    );
+      `${r.nome} [${r.turma}] (${r.email})\n  Nota Final: ${r.media}\n\n${r.fichaCompleta}`
+    ).join("\n\n" + "=".repeat(60) + "\n\n");
+    try {
+      await navigator.clipboard.writeText(
+        `${prontos.length} resultado(s) prontos\n` +
+        (pendentes.length ? `Pendentes: ${pendentes.map(r=>r.nome).join(", ")}\n` : "") +
+        "\n" + resumo
+      );
+      showToast("📋 Resultados copiados! Cole no seu e-mail e envie manualmente.");
+    } catch {
+      alert(`${prontos.length} resultado(s) prontos.\n\n` + resumo);
+    }
     statusEl.style.background = "var(--ok-light)";
     statusEl.style.color = "var(--ok)";
     statusEl.textContent = `✓ ${prontos.length} resultado(s) prontos · ${pendentes.length} pendente(s) · EmailJS não configurado — envio manual necessário`;
@@ -1390,9 +1610,9 @@ async function liberarResultados() {
     try {
       await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
         to_name: r.nome, to_email: r.email,
-        codigo: r.codigo, nota_final: r.media,
-        avaliador1: r.n1, avaliador2: r.n2,
-        comentarios: r.comentarios, link: SISTEMA_URL
+        codigo: r.codigo, turma: r.turma,
+        nota_final: r.media, avaliador1: r.n1, avaliador2: r.n2,
+        ficha_completa: r.fichaCompleta, link: SISTEMA_URL
       });
       enviados++;
     } catch(err) { console.error("Erro ao enviar para", r.email, err); }
@@ -1410,6 +1630,8 @@ async function loadCoordData() {
   dbAlunos = await dbRead("alunos") || dbAlunos;
   dbProfessores = await dbRead("professores") || dbProfessores;
   dbAtribuicoes = await dbRead("atribuicoes") || dbAtribuicoes;
+  // Carregar config EmailJS salva
+  setTimeout(carregarEmailJS, 100);
 }
 
 // ══════════════════════════════════════════════════════
