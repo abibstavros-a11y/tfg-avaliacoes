@@ -291,7 +291,7 @@ tr:last-child td { border-bottom:none; }
 <div class="container">
 
   <!-- ══ LOGIN ══ -->
-  <div class="screen active" id="loginScreen">
+  <div class="screen" id="loginScreen" style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 64px)">
     <div class="login-card">
       <h2>Acesso ao Sistema</h2>
       <p>Entre com seu usuário e senha fornecidos pelo coordenador.</p>
@@ -1654,19 +1654,33 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove("show"), 3200);
 }
 // ── INIT ──
-(function init() {
-  // Esconder todas as telas via style direto
+// Init robusto — funciona com scripts tipo module
+function initApp() {
   ["loginScreen","workListScreen","evalScreen","coordScreen"].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.display = "none";
+    if (el) { el.classList.remove("active"); el.style.display = "none"; }
   });
-  // Mostrar login com flex
   const login = document.getElementById("loginScreen");
   if (login) {
     login.classList.add("active");
     login.style.display = "flex";
   }
-})();
+  const u = document.getElementById("loginUser");
+  if (u) u.focus();
+}
+
+// Tentar DOMContentLoaded primeiro, fallback para window.onload
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
+window.addEventListener("load", function() {
+  const login = document.getElementById("loginScreen");
+  if (login && login.style.display !== "flex") {
+    initApp();
+  }
+});
 </script>
 </body>
 </html>
