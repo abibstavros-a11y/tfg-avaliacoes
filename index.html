@@ -7,552 +7,44 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <!-- EmailJS SDK -->
+<!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
-<!-- EmailJS SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-
-<!-- Firebase SDK -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, set, get, onValue, push, update }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+// ══ FIREBASE ══
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, update }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  // ════════════════════════════════════════
-  // CONFIGURAÇÃO FIREBASE
-  // Substitua pelos seus dados do Firebase Console
-  // ════════════════════════════════════════
-  const firebaseConfig = {
-    apiKey: "AIzaSyCB2E4YT7y8dNq9ZviFl8vDMICHaewejsk",
-    authDomain: "tfg-avaliacoes.firebaseapp.com",
-    databaseURL: "https://tfg-avaliacoes-default-rtdb.firebaseio.com",
-    projectId: "tfg-avaliacoes",
-    storageBucket: "tfg-avaliacoes.firebasestorage.app",
-    messagingSenderId: "915602242653",
-    appId: "1:915602242653:web:8218ab450d646a4a2421b4",
-    measurementId: "G-Q4EF8NRLTX"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyCB2E4YT7y8dNq9ZviFl8vDMICHaewejsk",
+  authDomain: "tfg-avaliacoes.firebaseapp.com",
+  databaseURL: "https://tfg-avaliacoes-default-rtdb.firebaseio.com",
+  projectId: "tfg-avaliacoes",
+  storageBucket: "tfg-avaliacoes.firebasestorage.app",
+  messagingSenderId: "915602242653",
+  appId: "1:915602242653:web:8218ab450d646a4a2421b4",
+  measurementId: "G-Q4EF8NRLTX"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
 
-  // Expor para o resto do código
-  window._db = db;
-  window._dbRef = ref;
-  window._dbSet = set;
-  window._dbGet = get;
-  window._dbUpdate = update;
-  window._dbOnValue = onValue;
-  window._firebaseReady = true;
-  window.dispatchEvent(new Event("firebaseReady"));
-</script>
-
-<style>
-:root {
-  --bg: #f7f5f2;
-  --surface: #ffffff;
-  --surface2: #f0ede8;
-  --border: #e0dbd3;
-  --border2: #ccc8c0;
-  --text: #1c1a17;
-  --muted: #7a7570;
-  --accent: #1a3a2a;
-  --accent-light: #e8f0eb;
-  --accent2: #c9a84c;
-  --danger: #8b2020;
-  --danger-light: #fdf0f0;
-  --warn: #7a4f00;
-  --warn-light: #fdf6e3;
-  --ok: #1a3a2a;
-  --ok-light: #e8f0eb;
-  --nivel-1: #fdf0f0;
-  --nivel-2: #fdf6e3;
-  --nivel-3: #f0f4ff;
-  --nivel-4: #e8f0eb;
+async function dbRead(path) {
+  try {
+    const snap = await get(ref(db, path));
+    return snap.exists() ? snap.val() : null;
+  } catch(e) { return null; }
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Source Sans 3',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:15px; line-height:1.6; }
-
-/* HEADER */
-header { background:var(--accent); color:white; padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:50; box-shadow:0 2px 16px rgba(0,0,0,0.2); }
-header h1 { font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:600; }
-header p { font-size:0.75rem; opacity:0.7; margin-top:1px; }
-.score-pill { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); border-radius:24px; padding:5px 14px; text-align:center; display:none; }
-.score-pill .val { font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:600; line-height:1; }
-.score-pill .lbl { font-size:0.6rem; opacity:0.7; letter-spacing:0.08em; text-transform:uppercase; }
-.header-right { display:flex; align-items:center; gap:1rem; }
-.btn-logout { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); border-radius:6px; padding:5px 12px; color:white; font-family:inherit; font-size:0.775rem; cursor:pointer; display:none; transition:background 0.2s; }
-.btn-logout:hover { background:rgba(255,255,255,0.25); }
-
-/* CONTAINER */
-.container { max-width:880px; margin:0 auto; padding:2rem 1.5rem 4rem; }
-
-/* SCREENS */
-.screen { display:none; }
-#loginScreen.active { align-items:center; justify-content:center; min-height:calc(100vh - 64px); }
-
-/* LOGIN */
-.login-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2.5rem; width:100%; max-width:400px; box-shadow:0 8px 32px rgba(0,0,0,0.08); }
-.login-card h2 { font-family:'Playfair Display',serif; font-size:1.5rem; margin-bottom:0.25rem; }
-.login-card > p { color:var(--muted); font-size:0.875rem; margin-bottom:1.75rem; }
-.form-group { margin-bottom:1.1rem; }
-.form-group label { display:block; font-size:0.75rem; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); margin-bottom:0.4rem; }
-.form-group input, .form-group select { width:100%; border:1px solid var(--border); border-radius:8px; padding:9px 13px; font-family:inherit; font-size:0.9rem; background:var(--bg); color:var(--text); outline:none; transition:border-color 0.2s; }
-.form-group input:focus, .form-group select:focus { border-color:var(--accent); }
-.btn-primary { width:100%; padding:11px; background:var(--accent); color:white; border:none; border-radius:8px; font-family:inherit; font-size:0.9rem; font-weight:600; cursor:pointer; transition:all 0.2s; }
-.btn-primary:hover { background:#122a1e; transform:translateY(-1px); box-shadow:0 4px 14px rgba(26,58,42,0.3); }
-.login-error { color:var(--danger); font-size:0.8rem; margin-top:0.6rem; display:none; }
-.hint-box { margin-top:1.1rem; padding:0.75rem; background:var(--bg); border-radius:8px; font-size:0.75rem; color:var(--muted); line-height:1.7; }
-.hint-box strong { color:var(--text); display:block; margin-bottom:3px; }
-
-/* SECTION TITLE */
-.section-title { font-family:'Playfair Display',serif; font-size:1.25rem; margin-bottom:0.2rem; padding-top:1.5rem; }
-.section-sub { color:var(--muted); font-size:0.85rem; margin-bottom:1.5rem; }
-
-/* WORK LIST */
-.work-cards { display:grid; gap:0.875rem; }
-.work-card { background:var(--surface); border:1px solid var(--border); border-left:4px solid transparent; border-radius:10px; padding:1.1rem 1.4rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; transition:all 0.2s; }
-.work-card:hover { border-color:var(--accent); border-left-color:var(--accent); box-shadow:0 3px 14px rgba(0,0,0,0.06); }
-.work-card.done { border-left-color:var(--accent2); }
-.work-card-info h3 { font-weight:600; font-size:0.9rem; margin-bottom:2px; }
-.work-card-info p { font-size:0.775rem; color:var(--muted); }
-.badge { font-size:0.72rem; font-weight:600; padding:3px 11px; border-radius:20px; flex-shrink:0; }
-.badge-pending { background:var(--warn-light); color:var(--warn); }
-.badge-done { background:var(--ok-light); color:var(--ok); }
-
-/* EVAL HEADER */
-.eval-header { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem 1.4rem; margin-bottom:1.25rem; margin-top:1.5rem; display:flex; align-items:center; justify-content:space-between; }
-.eval-header h2 { font-family:'Playfair Display',serif; font-size:1.1rem; }
-.eval-header p { font-size:0.775rem; color:var(--muted); margin-top:2px; }
-.btn-back { background:none; border:1px solid var(--border); border-radius:7px; padding:6px 13px; font-family:inherit; font-size:0.8rem; cursor:pointer; color:var(--muted); transition:all 0.2s; }
-.btn-back:hover { border-color:var(--accent); color:var(--accent); }
-
-/* PDF */
-.pdf-section { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:1.25rem; overflow:hidden; }
-.pdf-header { padding:0.75rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--surface2); }
-.pdf-header span { font-size:0.75rem; font-weight:600; color:var(--muted); letter-spacing:0.07em; text-transform:uppercase; }
-.pdf-toggle { background:none; border:1px solid var(--border); border-radius:6px; padding:3px 11px; font-family:inherit; font-size:0.75rem; cursor:pointer; color:var(--muted); transition:all 0.2s; }
-.pdf-toggle:hover { border-color:var(--accent); color:var(--accent); }
-.pdf-frame { width:100%; height:480px; border:none; display:block; }
-.pdf-frame.collapsed { display:none; }
-
-/* SCORE SUMMARY */
-.score-summary { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem; margin-bottom:1.25rem; display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:0.6rem; }
-.score-item { text-align:center; padding:0.6rem; border-radius:7px; background:var(--bg); border:1px solid var(--border); }
-.score-item .s-label { font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px; line-height:1.3; }
-.score-item .s-val { font-family:'Playfair Display',serif; font-size:1.2rem; color:var(--accent); }
-.score-item.total { background:var(--accent); border-color:var(--accent); }
-.score-item.total .s-label { color:rgba(255,255,255,0.7); }
-.score-item.total .s-val { color:white; font-size:1.5rem; }
-
-/* CAMPO */
-.campo-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:1rem; overflow:hidden; }
-.campo-header { padding:0.875rem 1.25rem; border-bottom:1px solid var(--border); background:var(--surface2); display:flex; align-items:center; justify-content:space-between; }
-.campo-num { font-family:'Playfair Display',serif; font-size:0.775rem; color:var(--muted); margin-right:7px; }
-.campo-title { font-weight:600; font-size:0.9rem; }
-.campo-score-badge { font-size:0.775rem; font-weight:700; padding:2px 11px; border-radius:20px; background:var(--bg); border:1px solid var(--border); color:var(--muted); transition:all 0.3s; }
-.campo-score-badge.scored { background:var(--accent-light); border-color:var(--accent); color:var(--accent); }
-.campo-score-badge.low { background:var(--danger-light); border-color:var(--danger); color:var(--danger); }
-.campo-body { padding:1.1rem 1.25rem; }
-
-/* CRITERIO */
-.criterio-block { margin-bottom:1.1rem; padding-bottom:1.1rem; border-bottom:1px solid var(--border); }
-.criterio-block:last-of-type { border-bottom:none; margin-bottom:0; padding-bottom:0; }
-.criterio-label { font-size:0.68rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-bottom:0.4rem; display:flex; align-items:center; gap:6px; }
-.critico-tag { background:var(--accent); color:white; font-size:0.58rem; padding:1px 6px; border-radius:10px; }
-.orientacao { font-size:0.8rem; color:var(--muted); background:var(--bg); border-left:3px solid var(--border2); padding:0.55rem 0.8rem; border-radius:0 6px 6px 0; margin-bottom:0.8rem; line-height:1.55; }
-.orientacao .atencao { color:var(--warn); font-weight:600; }
-
-/* NIVEL */
-.nivel-selector { display:grid; grid-template-columns:repeat(6,1fr); gap:5px; }
-.nivel-btn { border:2px solid var(--border); border-radius:7px; padding:7px 3px; text-align:center; cursor:pointer; transition:all 0.15s; background:var(--surface); user-select:none; }
-.nivel-btn:hover { border-color:var(--border2); background:var(--bg); }
-.nivel-btn .nivel-name { font-size:0.62rem; font-weight:600; line-height:1.2; margin-bottom:2px; color:var(--text); }
-.nivel-btn .nivel-pts { font-family:'Playfair Display',serif; font-size:0.85rem; color:var(--muted); }
-.nivel-btn[data-nivel="0"].selected { border-color:#888; background:#f0f0f0; }
-.nivel-btn[data-nivel="1"].selected { border-color:#c0392b; background:var(--nivel-1); }
-.nivel-btn[data-nivel="1"].selected .nivel-pts { color:#c0392b; }
-.nivel-btn[data-nivel="2"].selected { border-color:#b07800; background:var(--nivel-2); }
-.nivel-btn[data-nivel="2"].selected .nivel-pts { color:#b07800; }
-.nivel-btn[data-nivel="3"].selected { border-color:#3a5bbf; background:var(--nivel-3); }
-.nivel-btn[data-nivel="3"].selected .nivel-pts { color:#3a5bbf; }
-.nivel-btn[data-nivel="4"].selected { border-color:#2a6b45; background:var(--nivel-4); }
-.nivel-btn[data-nivel="4"].selected .nivel-pts { color:#2a6b45; }
-.nivel-btn[data-nivel="5"].selected { border-color:var(--accent); background:var(--accent); }
-.nivel-btn[data-nivel="5"].selected .nivel-name { color:white; }
-.nivel-btn[data-nivel="5"].selected .nivel-pts { color:rgba(255,255,255,0.85); }
-
-/* COMMENT */
-.comment-area { margin-top:0.875rem; display:none; }
-.comment-area.visible { display:block; }
-.comment-area label { font-size:0.7rem; font-weight:600; color:var(--danger); letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:5px; margin-bottom:0.35rem; }
-.comment-area textarea { width:100%; border:1px solid #e0b0b0; border-radius:7px; padding:9px 11px; font-family:inherit; font-size:0.85rem; resize:vertical; min-height:72px; outline:none; background:var(--danger-light); color:var(--text); transition:border-color 0.2s; }
-.comment-area textarea:focus { border-color:var(--danger); }
-
-/* TRANSVERSAL */
-.transversal-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:1rem; overflow:hidden; }
-.transversal-header { padding:0.875rem 1.25rem; border-bottom:1px solid var(--border); background:#f8f5ee; display:flex; align-items:center; justify-content:space-between; }
-.transversal-header .campo-title { color:var(--accent2); }
-
-/* GENERAL / AJUSTE */
-.card-section { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.1rem 1.25rem; margin-bottom:1rem; }
-.card-section h3 { font-weight:600; font-size:0.9rem; margin-bottom:0.2rem; }
-.card-section > p { font-size:0.78rem; color:var(--muted); margin-bottom:0.75rem; }
-.card-section textarea { width:100%; border:1px solid var(--border); border-radius:7px; padding:9px 11px; font-family:inherit; font-size:0.85rem; resize:vertical; min-height:85px; outline:none; background:var(--bg); color:var(--text); transition:border-color 0.2s; }
-.card-section textarea:focus { border-color:var(--accent); }
-.ajuste-row { display:flex; gap:1rem; align-items:flex-start; }
-.ajuste-nota { flex-shrink:0; }
-.ajuste-nota label { font-size:0.72rem; font-weight:600; color:var(--muted); letter-spacing:0.07em; text-transform:uppercase; display:block; margin-bottom:0.35rem; }
-.ajuste-nota input { width:85px; border:1px solid var(--border); border-radius:7px; padding:8px 11px; font-family:'Playfair Display',serif; font-size:1.05rem; text-align:center; outline:none; background:var(--bg); color:var(--text); transition:border-color 0.2s; }
-.ajuste-nota input:focus { border-color:var(--accent); }
-.ajuste-justif { flex:1; }
-.ajuste-justif label { font-size:0.72rem; font-weight:600; color:var(--muted); letter-spacing:0.07em; text-transform:uppercase; display:block; margin-bottom:0.35rem; }
-.ajuste-justif textarea { min-height:65px; }
-
-/* ACTIONS */
-.actions { display:flex; gap:0.875rem; justify-content:flex-end; margin-top:1.25rem; }
-.btn-save { padding:10px 26px; background:var(--accent); color:white; border:none; border-radius:7px; font-family:inherit; font-size:0.9rem; font-weight:600; cursor:pointer; transition:all 0.2s; }
-.btn-save:hover { background:#122a1e; transform:translateY(-1px); box-shadow:0 4px 14px rgba(26,58,42,0.3); }
-.btn-secondary { padding:10px 18px; background:none; border:1px solid var(--border); border-radius:7px; font-family:inherit; font-size:0.85rem; cursor:pointer; color:var(--muted); transition:all 0.2s; }
-.btn-secondary:hover { border-color:var(--danger); color:var(--danger); }
-
-/* COORDENADOR */
-.coord-tabs { display:flex; gap:0; margin-bottom:1.5rem; margin-top:1.5rem; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
-.coord-tab { flex:1; padding:0.75rem; text-align:center; cursor:pointer; font-size:0.85rem; font-weight:500; color:var(--muted); border-right:1px solid var(--border); transition:all 0.2s; background:var(--surface); }
-.coord-tab:last-child { border-right:none; }
-.coord-tab.active { background:var(--accent); color:white; font-weight:600; }
-.coord-tab:hover:not(.active) { background:var(--bg); }
-.coord-panel { display:none; }
-.coord-panel.active { display:block; }
-
-.upload-zone { border:2px dashed var(--border2); border-radius:10px; padding:2rem; text-align:center; cursor:pointer; transition:all 0.2s; margin-bottom:1rem; }
-.upload-zone:hover { border-color:var(--accent); background:var(--accent-light); }
-.upload-zone input { display:none; }
-.upload-zone .icon { font-size:2rem; margin-bottom:0.5rem; }
-.upload-zone h4 { font-weight:600; font-size:0.9rem; margin-bottom:0.25rem; }
-.upload-zone p { font-size:0.775rem; color:var(--muted); }
-.upload-status { font-size:0.8rem; padding:0.6rem 1rem; border-radius:7px; margin-top:0.5rem; display:none; }
-.upload-status.ok { background:var(--ok-light); color:var(--ok); display:block; }
-.upload-status.err { background:var(--danger-light); color:var(--danger); display:block; }
-
-.table-wrap { overflow-x:auto; margin-bottom:1.25rem; }
-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
-th { background:var(--surface2); padding:0.6rem 0.875rem; text-align:left; font-size:0.7rem; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:2px solid var(--border); }
-td { padding:0.6rem 0.875rem; border-bottom:1px solid var(--border); }
-tr:last-child td { border-bottom:none; }
-.select-prof { border:1px solid var(--border); border-radius:5px; padding:4px 8px; font-family:inherit; font-size:0.8rem; background:var(--bg); color:var(--text); outline:none; width:100%; }
-.select-prof:focus { border-color:var(--accent); }
-
-.results-grid { display:grid; gap:0.75rem; }
-.result-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem 1.25rem; }
-.result-card h4 { font-weight:600; font-size:0.9rem; margin-bottom:0.4rem; }
-.result-card .result-scores { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.5rem; }
-.result-score { font-size:0.8rem; }
-.result-score .rs-label { color:var(--muted); }
-.result-score .rs-val { font-family:'Playfair Display',serif; font-size:1rem; color:var(--accent); font-weight:600; }
-.result-score .rs-val.low { color:var(--danger); }
-.result-avg { font-family:'Playfair Display',serif; font-size:1.5rem; color:var(--accent); font-weight:600; }
-.result-avg.low { color:var(--danger); }
-
-/* TOAST */
-.toast { position:fixed; bottom:2rem; right:2rem; background:var(--accent); color:white; padding:11px 18px; border-radius:9px; font-size:0.85rem; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,0.2); transform:translateY(80px); opacity:0; transition:all 0.3s; z-index:200; }
-.toast.show { transform:translateY(0); opacity:1; }
-
-/* LOADING */
-.loading { text-align:center; padding:3rem; color:var(--muted); font-size:0.875rem; }
-.btn-turma { padding:9px 20px; border:2px solid var(--border); border-radius:8px; background:var(--surface); font-family:inherit; font-size:0.875rem; font-weight:500; cursor:pointer; color:var(--muted); transition:all 0.2s; }
-.btn-turma:hover { border-color:var(--accent); color:var(--accent); }
-.btn-turma.active { border-color:var(--accent); background:var(--accent); color:white; font-weight:600; }
-
-@media(max-width:600px) {
-  .nivel-selector { grid-template-columns:repeat(3,1fr); }
-  .ajuste-row { flex-direction:column; }
-  .coord-tabs { flex-direction:column; }
-  .coord-tab { border-right:none; border-bottom:1px solid var(--border); }
+async function dbWrite(path, data) {
+  try { await set(ref(db, path), data); return true; }
+  catch(e) { return false; }
 }
-</style>
-</head>
-<body>
+async function dbMerge(path, data) {
+  try { await update(ref(db, path), data); return true; }
+  catch(e) { return false; }
+}
 
-<header>
-  <div>
-    <h1>Sistema de Avaliação — TFG I</h1>
-    <p id="headerSub">Avaliação cega · Acesso restrito</p>
-  </div>
-  <div class="header-right">
-    <div class="score-pill" id="scorePill">
-      <div class="val" id="scoreVal">—</div>
-      <div class="lbl">Nota atual</div>
-    </div>
-    <button class="btn-logout" id="btnLogout" onclick="doLogout()">Sair</button>
-  </div>
-</header>
-
-<div class="container">
-
-  <!-- ══ LOGIN ══ -->
-  <div class="screen" id="loginScreen" style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 64px)">
-    <div class="login-card">
-      <h2>Acesso ao Sistema</h2>
-      <p>Entre com seu usuário e senha fornecidos pelo coordenador.</p>
-      <div class="form-group">
-        <label>Usuário</label>
-        <input type="text" id="loginUser" placeholder="Ex: ana.lima"
-          onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
-      </div>
-      <div class="form-group">
-        <label>Senha</label>
-        <input type="password" id="loginPass" placeholder="Senha recebida por e-mail"
-          onkeydown="if(event.key==='Enter')doLogin()">
-      </div>
-      <button class="btn-primary" onclick="doLogin()">Entrar</button>
-      <div class="login-error" id="loginError">Usuário ou senha inválidos.</div>
-    </div>
-  </div>
-
-  <!-- ══ LISTA DE TRABALHOS ══ -->
-  <div class="screen" id="workListScreen">
-    <h2 class="section-title" id="profName">Bem-vindo</h2>
-    <p class="section-sub" id="profSub">Selecione um trabalho para avaliar.</p>
-    <div class="work-cards" id="workCards">
-      <div class="loading">Carregando trabalhos...</div>
-    </div>
-  </div>
-
-  <!-- ══ AVALIAÇÃO ══ -->
-  <div class="screen" id="evalScreen">
-    <div class="eval-header">
-      <div>
-        <h2 id="workTitle">—</h2>
-        <p id="workCode">—</p>
-      </div>
-      <button class="btn-back" onclick="goBack()">← Voltar</button>
-    </div>
-
-    <div class="pdf-section">
-      <div class="pdf-header">
-        <span>📄 Trabalho</span>
-        <button class="pdf-toggle" onclick="togglePdf()">Recolher</button>
-      </div>
-      <iframe class="pdf-frame" id="pdfFrame" src=""></iframe>
-    </div>
-
-    <div class="score-summary" id="scoreSummary"></div>
-    <div id="camposContainer"></div>
-
-    <!-- Transversal -->
-    <div class="transversal-card">
-      <div class="transversal-header">
-        <div>
-          <span class="campo-num">Transversal</span>
-          <span class="campo-title">Organização Geral do Documento</span>
-        </div>
-        <span class="campo-score-badge" id="badge-transversal">—</span>
-      </div>
-      <div class="campo-body">
-        <div class="criterio-block">
-          <div class="criterio-label">Organização</div>
-          <div class="orientacao">O documento respeita os limites de palavras de cada campo? A linguagem é acadêmica e adequada? Cada campo cumpre sua função sem repetir conteúdo de outros? A formatação é consistente ao longo do documento?</div>
-          <div class="nivel-selector" data-campo="transversal" data-criterio="org"></div>
-          <div class="comment-area" id="ca-transversal-org">
-            <label>⚠ Comentário obrigatório — nota abaixo de 7</label>
-            <textarea data-campo="transversal" data-criterio="org" placeholder="Indique os problemas de organização identificados..."></textarea>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card-section">
-      <h3>Comentário Geral</h3>
-      <p>Síntese da avaliação — pontos fortes, fragilidades e recomendações ao aluno.</p>
-      <textarea id="generalComment" placeholder="Escreva aqui seu comentário geral sobre o trabalho..."></textarea>
-    </div>
-
-    <div class="card-section">
-      <h3>Ajuste de Nota</h3>
-      <p>Se algum aspecto relevante não foi capturado pela rubrica, ajuste a nota final e justifique.</p>
-      <div class="ajuste-row">
-        <div class="ajuste-nota">
-          <label>Nota final</label>
-          <input type="number" id="ajusteNota" min="0" max="10" step="0.1" placeholder="—" oninput="updateScore()">
-        </div>
-        <div class="ajuste-justif">
-          <label>Justificativa do ajuste</label>
-          <textarea id="ajusteJustif" placeholder="Explique o motivo do ajuste..." class="ajuste-justif"></textarea>
-        </div>
-      </div>
-    </div>
-
-    <div class="actions">
-      <button class="btn-secondary" onclick="clearEval()">🗑 Limpar</button>
-      <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent)" onclick="goBack()">← Voltar sem salvar</button>
-      <button class="btn-save" onclick="saveEval()">💾 Salvar e Voltar</button>
-    </div>
-  </div>
-
-  <!-- ══ COORDENADOR ══ -->
-  <div class="screen" id="coordScreen">
-    <h2 class="section-title">Painel do Coordenador</h2>
-    <p class="section-sub">Gerencie uploads, atribuições e consulte resultados.</p>
-
-    <div class="coord-tabs">
-      <div class="coord-tab active" onclick="switchTab('uploads')">📁 Uploads</div>
-      <div class="coord-tab" onclick="switchTab('atribuicoes')">👥 Atribuições</div>
-      <div class="coord-tab" onclick="switchTab('resultados')">📊 Resultados</div>
-    </div>
-
-    <!-- TAB UPLOADS -->
-    <div class="coord-panel active" id="tab-uploads">
-      <!-- SELETOR DE TURMA -->
-      <div class="card-section">
-        <h3>Turma</h3>
-        <p>Selecione a turma antes de fazer os uploads de alunos e trabalhos.</p>
-        <div style="display:flex;gap:0.75rem">
-          <button class="btn-turma active" id="btn-turma1" onclick="selecionarTurma(1)">📚 Turma 1 — Matutino</button>
-          <button class="btn-turma" id="btn-turma2" onclick="selecionarTurma(2)">📚 Turma 2 — Noturno</button>
-        </div>
-        <div style="font-size:0.78rem;color:var(--muted);margin-top:0.5rem">
-          Turma selecionada: <strong id="turmaAtualLabel">Turma 1 — Matutino</strong>
-        </div>
-      </div>
-
-      <div class="card-section">
-        <h3>1. Lista de Alunos</h3>
-        <p>CSV com colunas: <code>nome,email</code> — os alunos serão vinculados à turma selecionada acima.</p>
-        <div class="upload-zone" onclick="document.getElementById('uploadAlunos').click()">
-          <input type="file" id="uploadAlunos" accept=".csv" onchange="handleAlunosCSV(this)">
-          <div class="icon">👥</div>
-          <h4>Clique para selecionar o CSV de alunos</h4>
-          <p>nome,email,turma — um aluno por linha</p>
-        </div>
-        <div class="upload-status" id="statusAlunos"></div>
-      </div>
-
-      <div class="card-section">
-        <h3>2. Trabalhos — ZIP do Moodle</h3>
-        <p>O sistema extrai os nomes das pastas e cruza com a lista de alunos da turma selecionada.</p>
-        <div class="upload-zone" onclick="document.getElementById('uploadZip').click()">
-          <input type="file" id="uploadZip" accept=".zip" onchange="handleZip(this)">
-          <div class="icon">📦</div>
-          <h4>Clique para selecionar o ZIP do Moodle</h4>
-          <p>Estrutura: NomeAluno_ID_assignsubmission_file/arquivo.pdf</p>
-        </div>
-        <div class="upload-status" id="statusZip"></div>
-      </div>
-
-      <div class="card-section">
-        <h3>3. Lista de Professores Avaliadores</h3>
-        <p>CSV com apenas duas colunas: <code>nome,email</code> — a senha é gerada automaticamente pelo sistema.</p>
-        <div class="upload-zone" onclick="document.getElementById('uploadProfs').click()">
-          <input type="file" id="uploadProfs" accept=".csv" onchange="handleProfsCSV(this)">
-          <div class="icon">🎓</div>
-          <h4>Clique para selecionar o CSV de professores</h4>
-          <p>nome,email — um professor por linha · senha gerada automaticamente</p>
-        </div>
-        <div class="upload-status" id="statusProfs"></div>
-        <div id="profsGeradosWrap" style="display:none;margin-top:1rem">
-          <div style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.5rem">Credenciais Geradas</div>
-          <div id="profsGeradosTable"></div>
-          <button class="btn-save" style="margin-top:0.875rem;width:100%" onclick="enviarCredenciaisProfessores()">
-            📧 Enviar Credenciais por E-mail
-          </button>
-          <div style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;text-align:center">
-            Requer configuração do EmailJS — veja o Guia de Configuração
-          </div>
-        <div style="margin-top:1rem;padding:0.75rem;background:var(--warn-light);border-radius:8px;font-size:0.78rem;color:var(--warn);line-height:1.6">
-          <strong>Configurar EmailJS:</strong><br>
-          1. Acesse <a href="https://emailjs.com" target="_blank" style="color:var(--warn)">emailjs.com</a> e crie conta gratuita<br>
-          2. Conecte seu Gmail em <strong>Email Services</strong><br>
-          3. Crie um template em <strong>Email Templates</strong> com variáveis: <code>{{to_name}}</code>, <code>{{to_email}}</code>, <code>{{usuario}}</code>, <code>{{senha}}</code>, <code>{{link}}</code><br>
-          4. Copie o <strong>Service ID</strong>, <strong>Template ID</strong> e <strong>Public Key</strong><br>
-          5. Cole nos campos abaixo e clique em Salvar
-        </div>
-        <div style="margin-top:0.75rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
-          <div class="form-group" style="margin:0">
-            <label>Service ID</label>
-            <input type="text" id="ejsService" placeholder="service_xxx" oninput="salvarEmailJS()">
-          </div>
-          <div class="form-group" style="margin:0">
-            <label>Template Credenciais</label>
-            <input type="text" id="ejsTemplateProf" placeholder="template_xxx" oninput="salvarEmailJS()">
-          </div>
-          <div class="form-group" style="margin:0">
-            <label>Public Key</label>
-            <input type="text" id="ejsKey" placeholder="xxxxxxxxxxxx" oninput="salvarEmailJS()">
-          </div>
-        </div>
-        <div style="margin-top:0.5rem;display:grid;grid-template-columns:1fr;gap:0.5rem">
-          <div class="form-group" style="margin:0">
-            <label>Template Resultados (para alunos)</label>
-            <input type="text" id="ejsTemplateAluno" placeholder="template_xxx" oninput="salvarEmailJS()">
-          </div>
-        </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB ATRIBUIÇÕES -->
-    <div class="coord-panel" id="tab-atribuicoes">
-      <div class="card-section">
-        <h3>Atribuição de Trabalhos aos Avaliadores</h3>
-        <p>Cada trabalho deve ter exatamente 2 avaliadores. Filtre por turma para facilitar a atribuição.</p>
-        <div style="display:flex;gap:0.75rem;margin-bottom:1rem">
-          <button class="btn-turma active" id="filtro-todas" onclick="filtrarAtrib('todas')">Todas as turmas</button>
-          <button class="btn-turma" id="filtro-turma1" onclick="filtrarAtrib('1')">Turma 1</button>
-          <button class="btn-turma" id="filtro-turma2" onclick="filtrarAtrib('2')">Turma 2</button>
-        </div>
-        <div class="table-wrap">
-          <table id="atribTable">
-            <thead>
-              <tr>
-                <th>Aluno</th>
-                <th>Turma</th>
-                <th>Código</th>
-                <th>Avaliador 1</th>
-                <th>Avaliador 2</th>
-              </tr>
-            </thead>
-            <tbody id="atribBody">
-              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">
-                Faça o upload dos dados na aba Uploads primeiro.
-              </td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="actions">
-          <button class="btn-save" onclick="salvarAtribuicoes()">💾 Salvar Atribuições</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB RESULTADOS -->
-    <div class="coord-panel" id="tab-resultados">
-      <div class="card-section" style="margin-bottom:1rem">
-        <h3>Resultados Consolidados</h3>
-        <p>Médias calculadas automaticamente quando ambos os avaliadores finalizaram.</p>
-        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.75rem">
-          <button class="btn-primary" style="width:auto;padding:9px 20px" onclick="loadResultados()">🔄 Atualizar</button>
-          <button class="btn-secondary" style="padding:9px 20px" onclick="filtrarResultados('todas')">Todas</button>
-          <button class="btn-secondary" style="padding:9px 20px" onclick="filtrarResultados('Matutino')">☀️ Matutino</button>
-          <button class="btn-secondary" style="padding:9px 20px" onclick="filtrarResultados('Noturno')">🌙 Noturno</button>
-          <button class="btn-secondary" style="padding:9px 20px;color:var(--accent);border-color:var(--accent)" onclick="exportarResultados()">⬇️ Exportar CSV</button>
-          <button class="btn-save" style="padding:9px 20px" onclick="liberarResultados()">
-            📧 Liberar e Enviar Resultados
-          </button>
-        </div>
-        <div id="liberarStatus" style="display:none;margin-top:0.75rem;font-size:0.8rem;padding:0.6rem 1rem;border-radius:7px"></div>
-      </div>
-      <div class="results-grid" id="resultsGrid">
-        <div class="loading">Clique em Atualizar para carregar os resultados.</div>
-      </div>
-    </div>
-  </div>
-
-</div><!-- /container -->
-
-<div class="toast" id="toast"></div>
-
-<script>
 // ══════════════════════════════════════════════════════
 // ESTRUTURA DE AVALIAÇÃO
 // ══════════════════════════════════════════════════════
@@ -659,30 +151,6 @@ function filtrarAtrib(turma) {
 // ══════════════════════════════════════════════════════
 // FIREBASE HELPERS
 // ══════════════════════════════════════════════════════
-async function dbRead(path) {
-  if (!window._firebaseReady) return null;
-  try {
-    const snap = await window._dbGet(window._dbRef(window._db, path));
-    return snap.exists() ? snap.val() : null;
-  } catch(e) { console.error("dbRead", path, e); return null; }
-}
-
-async function dbWrite(path, data) {
-  if (!window._firebaseReady) return false;
-  try {
-    await window._dbSet(window._dbRef(window._db, path), data);
-    return true;
-  } catch(e) { console.error("dbWrite", path, e); return false; }
-}
-
-async function dbMerge(path, data) {
-  if (!window._firebaseReady) return false;
-  try {
-    await window._dbUpdate(window._dbRef(window._db, path), data);
-    return true;
-  } catch(e) { console.error("dbMerge", path, e); return false; }
-}
-
 // ══════════════════════════════════════════════════════
 // LOGIN / LOGOUT
 // ══════════════════════════════════════════════════════
@@ -691,21 +159,32 @@ async function doLogin() {
   const pass = document.getElementById("loginPass").value.trim();
   document.getElementById("loginError").style.display = "none";
 
-  // Buscar professores do Firebase
-  const profs = await dbRead("professores");
-  if (!profs) {
-    // Modo demo — sem Firebase configurado
-    demoLogin(user, pass);
-    return;
-  }
+  const btnEntrar = document.querySelector("#loginScreen .btn-primary");
+  if (btnEntrar) { btnEntrar.textContent = "Entrando..."; btnEntrar.disabled = true; }
 
-  dbProfessores = profs;
-  const prof = profs[user];
-  if (prof && prof.senha === pass) {
-    currentUser = { id: user, ...prof };
-    afterLogin();
-  } else {
-    document.getElementById("loginError").style.display = "block";
+  try {
+    // Timeout de 5 segundos para o Firebase
+    const profsPromise = dbRead("professores");
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 5000));
+    const profs = await Promise.race([profsPromise, timeoutPromise]);
+
+    if (!profs) {
+      demoLogin(user, pass);
+    } else {
+      dbProfessores = profs;
+      const prof = profs[user];
+      if (prof && prof.senha === pass) {
+        currentUser = { id: user, ...prof };
+        afterLogin();
+      } else {
+        document.getElementById("loginError").style.display = "block";
+      }
+    }
+  } catch(e) {
+    // Fallback para demo se Firebase falhar
+    demoLogin(user, pass);
+  } finally {
+    if (btnEntrar) { btnEntrar.textContent = "Entrar"; btnEntrar.disabled = false; }
   }
 }
 
@@ -1681,6 +1160,29 @@ window.addEventListener("load", function() {
     initApp();
   }
 });
+
+
+// ══ EXPOR FUNÇÕES AO HTML ══
+window.doLogin        = doLogin;
+window.doLogout       = doLogout;
+window.switchTab      = switchTab;
+window.openWork       = openWork;
+window.goBack         = goBack;
+window.saveEval       = saveEval;
+window.clearEval      = clearEval;
+window.togglePdf      = togglePdf;
+window.selectNivel    = selectNivel;
+window.handleAlunosCSV    = handleAlunosCSV;
+window.handleZip          = handleZip;
+window.handleProfsCSV     = handleProfsCSV;
+window.loadAtribTable     = loadAtribTable;
+window.salvarAtribuicoes  = salvarAtribuicoes;
+window.loadResultados     = loadResultados;
+window.liberarResultados  = liberarResultados;
+window.exportarResultados = exportarResultados;
+window.enviarCredenciaisProfessores = enviarCredenciaisProfessores;
+
+// ══ INIT ══
+initApp();
 </script>
 </body>
-</html>
