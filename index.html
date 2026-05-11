@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Avaliação — TFG I</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, get, onValue, push, update }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // ════════════════════════════════════════
+  // CONFIGURAÇÃO FIREBASE
+  // Substitua pelos seus dados do Firebase Console
+  // ════════════════════════════════════════
+  const firebaseConfig = {
+    apiKey: "AIzaSyCB2E4YT7y8dNq9ZviFl8vDMICHaewejsk",
+    authDomain: "tfg-avaliacoes.firebaseapp.com",
+    databaseURL: "https://tfg-avaliacoes-default-rtdb.firebaseio.com",
+    projectId: "tfg-avaliacoes",
+    storageBucket: "tfg-avaliacoes.firebasestorage.app",
+    messagingSenderId: "915602242653",
+    appId: "1:915602242653:web:8218ab450d646a4a2421b4",
+    measurementId: "G-Q4EF8NRLTX"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Expor para o resto do código
+  window._db = db;
+  window._dbRef = ref;
+  window._dbSet = set;
+  window._dbGet = get;
+  window._dbUpdate = update;
+  window._dbOnValue = onValue;
+  window._firebaseReady = true;
+  window.dispatchEvent(new Event("firebaseReady"));
+</script>
+
+<style>
+:root {
+  --bg: #f7f5f2;
+  --surface: #ffffff;
+  --surface2: #f0ede8;
+  --border: #e0dbd3;
+  --border2: #ccc8c0;
+  --text: #1c1a17;
+  --muted: #7a7570;
+  --accent: #1a3a2a;
+  --accent-light: #e8f0eb;
+  --accent2: #c9a84c;
+  --danger: #8b2020;
+  --danger-light: #fdf0f0;
+  --warn: #7a4f00;
+  --warn-light: #fdf6e3;
+  --ok: #1a3a2a;
+  --ok-light: #e8f0eb;
+  --nivel-1: #fdf0f0;
+  --nivel-2: #fdf6e3;
+  --nivel-3: #f0f4ff;
+  --nivel-4: #e8f0eb;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Source Sans 3',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:15px; line-height:1.6; }
+
+/* HEADER */
+header { background:var(--accent); color:white; padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:50; box-shadow:0 2px 16px rgba(0,0,0,0.2); }
+header h1 { font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:600; }
+header p { font-size:0.75rem; opacity:0.7; margin-top:1px; }
+.score-pill { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); border-radius:24px; padding:5px 14px; text-align:center; display:none; }
+.score-pill .val { font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:600; line-height:1; }
+.score-pill .lbl { font-size:0.6rem; opacity:0.7; letter-spacing:0.08em; text-transform:uppercase; }
+.header-right { display:flex; align-items:center; gap:1rem; }
+.btn-logout { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); border-radius:6px; padding:5px 12px; color:white; font-family:inherit; font-size:0.775rem; cursor:pointer; display:none; transition:background 0.2s; }
+.btn-logout:hover { background:rgba(255,255,255,0.25); }
+
+/* CONTAINER */
+.container { max-width:880px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+
+/* SCREENS */
+.screen { display:none; }
+#loginScreen.active { align-items:center; justify-content:center; min-height:calc(100vh - 64px); }
+
+/* LOGIN */
+.login-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2.5rem; width:100%; max-width:400px; box-shadow:0 8px 32px rgba(0,0,0,0.08); }
+.login-card h2 { font-family:'Playfair Display',serif; font-size:1.5rem; margin-bottom:0.25rem; }
+.login-card > p { color:var(--muted); font-size:0.875rem; margin-bottom:1.75rem; }
+.form-group { margin-bottom:1.1rem; }
+.form-group label { display:block; font-size:0.75rem; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); margin-bottom:0.4rem; }
+.form-group input, .form-group select { width:100%; border:1px solid var(--border); border-radius:8px; padding:9px 13px; font-family:inherit; font-size:0.9rem; background:var(--bg); color:var(--text); outline:none; transition:border-color 0.2s; }
+.form-group input:focus, .form-group select:focus { border-color:var(--accent); }
+.btn-primary { width:100%; padding:11px; background:var(--accent); color:white; border:none; border-radius:8px; font-family:inherit; font-size:0.9rem; font-weight:600; cursor:pointer; transition:all 0.2s; }
+.btn-primary:hover { background:#122a1e; transform:translateY(-1px); box-shadow:0 4px 14px rgba(26,58,42,0.3); }
+.login-error { color:var(--danger); font-size:0.8rem; margin-top:0.6rem; display:none; }
+.hint-box { margin-top:1.1rem; padding:0.75rem; background:var(--bg); border-radius:8px; font-size:0.75rem; color:var(--muted); line-height:1.7; }
+.hint-box strong { color:var(--text); display:block; margin-bottom:3px; }
+
+/* SECTION TITLE */
+.section-title { font-family:'Playfair Display',serif; font-size:1.25rem; margin-bottom:0.2rem; padding-top:1.5rem; }
+.section-sub { color:var(--muted); font-size:0.85rem; margin-bottom:1.5rem; }
+
+/* WORK LIST */
+.work-cards { display:grid; gap:0.875rem; }
+.work-card { background:var(--surface); border:1px solid var(--border); border-left:4px solid transparent; border-radius:10px; padding:1.1rem 1.4rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; transition:all 0.2s; }
+.work-card:hover { border-color:var(--accent); border-left-color:var(--accent); box-shadow:0 3px 14px rgba(0,0,0,0.06); }
+.work-card.done { border-left-color:var(--accent2); }
+.work-card-info h3 { font-weight:600; font-size:0.9rem; margin-bottom:2px; }
+.work-card-info p { font-size:0.775rem; color:var(--muted); }
+.badge { font-size:0.72rem; font-weight:600; padding:3px 11px; border-radius:20px; flex-shrink:0; }
+.badge-pending { background:var(--warn-light); color:var(--warn); }
+.badge-done { background:var(--ok-light); color:var(--ok); }
+
+/* EVAL HEADER */
+.eval-header { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem 1.4rem; margin-bottom:1.25rem; margin-top:1.5rem; display:flex; align-items:center; justify-content:space-between; }
+.eval-header h2 { font-family:'Playfair Display',serif; font-size:1.1rem; }
+.eval-header p { font-size:0.775rem; color:var(--muted); margin-top:2px; }
+.btn-back { background:none; border:1px solid var(--border); border-radius:7px; padding:6px 13px; font-family:inherit; font-size:0.8rem; cursor:pointer; color:var(--muted); transition:all 0.2s; }
+.btn-back:hover { border-color:var(--accent); color:var(--accent); }
+
+/* PDF */
+.pdf-section { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:1.25rem; overflow:hidden; }
+.pdf-header { padding:0.75rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--surface2); }
+.pdf-header span { font-size:0.75rem; font-weight:600; color:var(--muted); letter-spacing:0.07em; text-transform:uppercase; }
+.pdf-toggle { background:none; border:1px solid var(--border); border-radius:6px; padding:3px 11px; font-family:inherit; font-size:0.75rem; cursor:pointer; color:var(--muted); transition:all 0.2s; }
+.pdf-toggle:hover { border-color:var(--accent); color:var(--accent); }
+.pdf-frame { width:100%; height:480px; border:none; display:block; }
+.pdf-frame.collapsed { display:none; }
+
+/* SCORE SUMMARY */
+.score-summary { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem; margin-bottom:1.25rem; display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:0.6rem; }
+.score-item { text-align:center; padding:0.6rem; border-radius:7px; background:var(--bg); border:1px solid var(--border); }
+.score-item .s-label { font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px; line-height:1.3; }
+.score-item .s-val { font-family:'Playfair Display',serif; font-size:1.2rem; color:var(--accent); }
+.score-item.total { background:var(--accent); border-color:var(--accent); }
+.score-item.total .s-label { color:rgba(255,255,255,0.7); }
+.score-item.total .s-val { color:white; font-size:1.5rem; }
+
+/* CAMPO */
+.campo-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:1rem; overflow:hidden; }
+.campo-header { padding:0.875rem 1.25rem; border-bottom:1px solid var(--border); background:var(--surface2); display:flex; align-items:center; justify-content:space-between; }
+.campo-num { font-family:'Playfair Display',serif; font-size:0.775rem; color:var(--muted); margin-right:7px; }
+.campo-title { font-weight:600; font-size:0.9rem; }
+.campo-score-badge { font-size:0.775rem; font-weight:700; padding:2px 11px; border-radius:20px; background:var(--bg); border:1px solid var(--border); color:var(--muted); transition:all 0.3s; }
+.campo-score-badge.scored { background:var(--accent-light); border-color:var(--accent); color:var(--accent); }
+.campo-score-badge.low { background:var(--danger-light); border-color:var(--danger); color:var(--danger); }
+.campo-body { padding:1.1rem 1.25rem; }
+
+/* CRITERIO */
+.criterio-block { margin-bottom:1.1rem; padding-bottom:1.1rem; border-bottom:1px solid var(--border); }
+.criterio-block:last-of-type { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+.criterio-label { font-size:0.68rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-bottom:0.4rem; display:flex; align-items:center; gap:6px; }
+.critico-tag { background:var(--accent); color:white; font-size:0.58rem; padding:1px 6px; border-radius:10px; }
+.orientacao { font-size:0.8rem; color:var(--muted); background:var(--bg); border-left:3px solid var(--border2); padding:0.55rem 0.8rem; border-radius:0 6px 6px 0; margin-bottom:0.8rem; line-height:1.55; }
+.orientacao .atencao { color:var(--warn); font-weight:600; }
+
+/* NIVEL */
+.nivel-selector { display:grid; grid-template-columns:repeat(6,1fr); gap:5px; }
+.nivel-btn { border:2px solid var(--border); border-radius:7px; padding:7px 3px; text-align:center; cursor:pointer; transition:all 0.15s; background:var(--surface); user-select:none; }
+.nivel-btn:hover { border-color:var(--border2); background:var(--bg); }
+.nivel-btn .nivel-name { font-size:0.62rem; font-weight:600; line-height:1.2; margin-bottom:2px; color:var(--text); }
+.nivel-btn .nivel-pts { font-family:'Playfair Display',serif; font-size:0.85rem; color:var(--muted); }
+.nivel-btn[data-nivel="0"].selected { border-color:#888; background:#f0f0f0; }
+.nivel-btn[data-nivel="1"].selected { border-color:#c0392b; background:var(--nivel-1); }
+.nivel-btn[data-nivel="1"].selected .nivel-pts { color:#c0392b; }
+.nivel-btn[data-nivel="2"].selected { border-color:#b07800; background:var(--nivel-2); }
+.nivel-btn[data-nivel="2"].selected .nivel-pts { color:#b07800; }
+.nivel-btn[data-nivel="3"].selected { border-color:#3a5bbf; background:var(--nivel-3); }
+.nivel-btn[data-nivel="3"].selected .nivel-pts { color:#3a5bbf; }
+.nivel-btn[data-nivel="4"].selected { border-color:#2a6b45; background:var(--nivel-4); }
+.nivel-btn[data-nivel="4"].selected .nivel-pts { color:#2a6b45; }
+.nivel-btn[data-nivel="5"].selected { border-color:var(--accent); background:var(--accent); }
+.nivel-btn[data-nivel="5"].selected .nivel-name { color:white; }
+.nivel-btn[data-nivel="5"].selected .nivel-pts { color:rgba(255,255,255,0.85); }
+
+/* COMMENT */
+.comment-area { margin-top:0.875rem; display:none; }
+.comment-area.visible { display:block; }
+.comment-area label { font-size:0.7rem; font-weight:600; color:var(--danger); letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:5px; margin-bottom:0.35rem; }
+.comment-area textarea { width:100%; border:1px solid #e0b0b0; border-radius:7px; padding:9px 11px; font-family:inherit; font-size:0.85rem; resize:vertical; min-height:72px; outline:none; background:var(--danger-light); color:var(--text); transition:border-color 0.2s; }
+.comment-area textarea:focus { border-color:var(--danger); }
+
+/* TRANSVERSAL */
+.transversal-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:1rem; overflow:hidden; }
+.transversal-header { padding:0.875rem 1.25rem; border-bottom:1px solid var(--border); background:#f8f5ee; display:flex; align-items:center; justify-content:space-between; }
+.transversal-header .campo-title { color:var(--accent2); }
+
+/* GENERAL / AJUSTE */
+.card-section { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.1rem 1.25rem; margin-bottom:1rem; }
+.card-section h3 { font-weight:600; font-size:0.9rem; margin-bottom:0.2rem; }
+.card-section > p { font-size:0.78rem; color:var(--muted); margin-bottom:0.75rem; }
+.card-section textarea { width:100%; border:1px solid var(--border); border-radius:7px; padding:9px 11px; font-family:inherit; font-size:0.85rem; resize:vertical; min-height:85px; outline:none; background:var(--bg); color:var(--text); transition:border-color 0.2s; }
+.card-section textarea:focus { border-color:var(--accent); }
+.ajuste-row { display:flex; gap:1rem; align-items:flex-start; }
+.ajuste-nota { flex-shrink:0; }
+.ajuste-nota label { font-size:0.72rem; font-weight:600; color:var(--muted); letter-spacing:0.07em; text-transform:uppercase; display:block; margin-bottom:0.35rem; }
+.ajuste-nota input { width:85px; border:1px solid var(--border); border-radius:7px; padding:8px 11px; font-family:'Playfair Display',serif; font-size:1.05rem; text-align:center; outline:none; background:var(--bg); color:var(--text); transition:border-color 0.2s; }
+.ajuste-nota input:focus { border-color:var(--accent); }
+.ajuste-justif { flex:1; }
+.ajuste-justif label { font-size:0.72rem; font-weight:600; color:var(--muted); letter-spacing:0.07em; text-transform:uppercase; display:block; margin-bottom:0.35rem; }
+.ajuste-justif textarea { min-height:65px; }
+
+/* ACTIONS */
+.actions { display:flex; gap:0.875rem; justify-content:flex-end; margin-top:1.25rem; }
+.btn-save { padding:10px 26px; background:var(--accent); color:white; border:none; border-radius:7px; font-family:inherit; font-size:0.9rem; font-weight:600; cursor:pointer; transition:all 0.2s; }
+.btn-save:hover { background:#122a1e; transform:translateY(-1px); box-shadow:0 4px 14px rgba(26,58,42,0.3); }
+.btn-secondary { padding:10px 18px; background:none; border:1px solid var(--border); border-radius:7px; font-family:inherit; font-size:0.85rem; cursor:pointer; color:var(--muted); transition:all 0.2s; }
+.btn-secondary:hover { border-color:var(--danger); color:var(--danger); }
+
+/* COORDENADOR */
+.coord-tabs { display:flex; gap:0; margin-bottom:1.5rem; margin-top:1.5rem; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
+.coord-tab { flex:1; padding:0.75rem; text-align:center; cursor:pointer; font-size:0.85rem; font-weight:500; color:var(--muted); border-right:1px solid var(--border); transition:all 0.2s; background:var(--surface); }
+.coord-tab:last-child { border-right:none; }
+.coord-tab.active { background:var(--accent); color:white; font-weight:600; }
+.coord-tab:hover:not(.active) { background:var(--bg); }
+.coord-panel { display:none; }
+.coord-panel.active { display:block; }
+
+.upload-zone { border:2px dashed var(--border2); border-radius:10px; padding:2rem; text-align:center; cursor:pointer; transition:all 0.2s; margin-bottom:1rem; }
+.upload-zone:hover { border-color:var(--accent); background:var(--accent-light); }
+.upload-zone input { display:none; }
+.upload-zone .icon { font-size:2rem; margin-bottom:0.5rem; }
+.upload-zone h4 { font-weight:600; font-size:0.9rem; margin-bottom:0.25rem; }
+.upload-zone p { font-size:0.775rem; color:var(--muted); }
+.upload-status { font-size:0.8rem; padding:0.6rem 1rem; border-radius:7px; margin-top:0.5rem; display:none; }
+.upload-status.ok { background:var(--ok-light); color:var(--ok); display:block; }
+.upload-status.err { background:var(--danger-light); color:var(--danger); display:block; }
+
+.table-wrap { overflow-x:auto; margin-bottom:1.25rem; }
+table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+th { background:var(--surface2); padding:0.6rem 0.875rem; text-align:left; font-size:0.7rem; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:2px solid var(--border); }
+td { padding:0.6rem 0.875rem; border-bottom:1px solid var(--border); }
+tr:last-child td { border-bottom:none; }
+.select-prof { border:1px solid var(--border); border-radius:5px; padding:4px 8px; font-family:inherit; font-size:0.8rem; background:var(--bg); color:var(--text); outline:none; width:100%; }
+.select-prof:focus { border-color:var(--accent); }
+
+.results-grid { display:grid; gap:0.75rem; }
+.result-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem 1.25rem; }
+.result-card h4 { font-weight:600; font-size:0.9rem; margin-bottom:0.4rem; }
+.result-card .result-scores { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.5rem; }
+.result-score { font-size:0.8rem; }
+.result-score .rs-label { color:var(--muted); }
+.result-score .rs-val { font-family:'Playfair Display',serif; font-size:1rem; color:var(--accent); font-weight:600; }
+.result-score .rs-val.low { color:var(--danger); }
+.result-avg { font-family:'Playfair Display',serif; font-size:1.5rem; color:var(--accent); font-weight:600; }
+.result-avg.low { color:var(--danger); }
+
+/* TOAST */
+.toast { position:fixed; bottom:2rem; right:2rem; background:var(--accent); color:white; padding:11px 18px; border-radius:9px; font-size:0.85rem; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,0.2); transform:translateY(80px); opacity:0; transition:all 0.3s; z-index:200; }
+.toast.show { transform:translateY(0); opacity:1; }
+
+/* LOADING */
+.loading { text-align:center; padding:3rem; color:var(--muted); font-size:0.875rem; }
+
+@media(max-width:600px) {
+  .nivel-selector { grid-template-columns:repeat(3,1fr); }
+  .ajuste-row { flex-direction:column; }
+  .coord-tabs { flex-direction:column; }
+  .coord-tab { border-right:none; border-bottom:1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Sistema de Avaliação — TFG I</h1>
+    <p id="headerSub">Avaliação cega · Acesso restrito</p>
+  </div>
+  <div class="header-right">
+    <div class="score-pill" id="scorePill">
+      <div class="val" id="scoreVal">—</div>
+      <div class="lbl">Nota atual</div>
+    </div>
+    <button class="btn-logout" id="btnLogout" onclick="doLogout()">Sair</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ══ LOGIN ══ -->
+  <div class="screen active" id="loginScreen">
+    <div class="login-card">
+      <h2>Acesso ao Sistema</h2>
+      <p>Entre com seu usuário e senha fornecidos pelo coordenador.</p>
+      <div class="form-group">
+        <label>Usuário</label>
+        <input type="text" id="loginUser" placeholder="Ex: ana.lima"
+          onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="loginPass" placeholder="Senha recebida por e-mail"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Entrar</button>
+      <div class="login-error" id="loginError">Usuário ou senha inválidos.</div>
+    </div>
+  </div>
+
+  <!-- ══ LISTA DE TRABALHOS ══ -->
+  <div class="screen" id="workListScreen">
+    <h2 class="section-title" id="profName">Bem-vindo</h2>
+    <p class="section-sub" id="profSub">Selecione um trabalho para avaliar.</p>
+    <div class="work-cards" id="workCards">
+      <div class="loading">Carregando trabalhos...</div>
+    </div>
+  </div>
+
+  <!-- ══ AVALIAÇÃO ══ -->
+  <div class="screen" id="evalScreen">
+    <div class="eval-header">
+      <div>
+        <h2 id="workTitle">—</h2>
+        <p id="workCode">—</p>
+      </div>
+      <button class="btn-back" onclick="goBack()">← Voltar</button>
+    </div>
+
+    <div class="pdf-section">
+      <div class="pdf-header">
+        <span>📄 Trabalho</span>
+        <button class="pdf-toggle" onclick="togglePdf()">Recolher</button>
+      </div>
+      <iframe class="pdf-frame" id="pdfFrame" src=""></iframe>
+    </div>
+
+    <div class="score-summary" id="scoreSummary"></div>
+    <div id="camposContainer"></div>
+
+    <!-- Transversal -->
+    <div class="transversal-card">
+      <div class="transversal-header">
+        <div>
+          <span class="campo-num">Transversal</span>
+          <span class="campo-title">Organização Geral do Documento</span>
+        </div>
+        <span class="campo-score-badge" id="badge-transversal">—</span>
+      </div>
+      <div class="campo-body">
+        <div class="criterio-block">
+          <div class="criterio-label">Organização</div>
+          <div class="orientacao">O documento respeita os limites de palavras de cada campo? A linguagem é acadêmica e adequada? Cada campo cumpre sua função sem repetir conteúdo de outros? A formatação é consistente ao longo do documento?</div>
+          <div class="nivel-selector" data-campo="transversal" data-criterio="org"></div>
+          <div class="comment-area" id="ca-transversal-org">
+            <label>⚠ Comentário obrigatório — nota abaixo de 7</label>
+            <textarea data-campo="transversal" data-criterio="org" placeholder="Indique os problemas de organização identificados..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-section">
+      <h3>Comentário Geral</h3>
+      <p>Síntese da avaliação — pontos fortes, fragilidades e recomendações ao aluno.</p>
+      <textarea id="generalComment" placeholder="Escreva aqui seu comentário geral sobre o trabalho..."></textarea>
+    </div>
+
+    <div class="card-section">
+      <h3>Ajuste de Nota</h3>
+      <p>Se algum aspecto relevante não foi capturado pela rubrica, ajuste a nota final e justifique.</p>
+      <div class="ajuste-row">
+        <div class="ajuste-nota">
+          <label>Nota final</label>
+          <input type="number" id="ajusteNota" min="0" max="10" step="0.1" placeholder="—" oninput="updateScore()">
+        </div>
+        <div class="ajuste-justif">
+          <label>Justificativa do ajuste</label>
+          <textarea id="ajusteJustif" placeholder="Explique o motivo do ajuste..." class="ajuste-justif"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-secondary" onclick="clearEval()">🗑 Limpar</button>
+      <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent)" onclick="goBack()">← Voltar sem salvar</button>
+      <button class="btn-save" onclick="saveEval()">💾 Salvar e Voltar</button>
+    </div>
+  </div>
+
+  <!-- ══ COORDENADOR ══ -->
+  <div class="screen" id="coordScreen">
+    <h2 class="section-title">Painel do Coordenador</h2>
+    <p class="section-sub">Gerencie uploads, atribuições e consulte resultados.</p>
+
+    <div class="coord-tabs">
+      <div class="coord-tab active" onclick="switchTab('uploads')">📁 Uploads</div>
+      <div class="coord-tab" onclick="switchTab('atribuicoes')">👥 Atribuições</div>
+      <div class="coord-tab" onclick="switchTab('resultados')">📊 Resultados</div>
+    </div>
+
+    <!-- TAB UPLOADS -->
+    <div class="coord-panel active" id="tab-uploads">
+      <div class="card-section">
+        <h3>1. Lista de Alunos</h3>
+        <p>CSV com colunas: <code>nome,email</code></p>
+        <div class="upload-zone" onclick="document.getElementById('uploadAlunos').click()">
+          <input type="file" id="uploadAlunos" accept=".csv" onchange="handleAlunosCSV(this)">
+          <div class="icon">👥</div>
+          <h4>Clique para selecionar o CSV de alunos</h4>
+          <p>nome,email — um aluno por linha</p>
+        </div>
+        <div class="upload-status" id="statusAlunos"></div>
+      </div>
+
+      <div class="card-section">
+        <h3>2. Trabalhos — ZIP do Moodle</h3>
+        <p>O sistema extrai os nomes das pastas e cruza com a lista de alunos.</p>
+        <div class="upload-zone" onclick="document.getElementById('uploadZip').click()">
+          <input type="file" id="uploadZip" accept=".zip" onchange="handleZip(this)">
+          <div class="icon">📦</div>
+          <h4>Clique para selecionar o ZIP do Moodle</h4>
+          <p>Estrutura: NomeAluno_ID_assignsubmission_file/arquivo.pdf</p>
+        </div>
+        <div class="upload-status" id="statusZip"></div>
+      </div>
+
+      <div class="card-section">
+        <h3>3. Lista de Professores Avaliadores</h3>
+        <p>CSV com apenas duas colunas: <code>nome,email</code> — a senha é gerada automaticamente pelo sistema.</p>
+        <div class="upload-zone" onclick="document.getElementById('uploadProfs').click()">
+          <input type="file" id="uploadProfs" accept=".csv" onchange="handleProfsCSV(this)">
+          <div class="icon">🎓</div>
+          <h4>Clique para selecionar o CSV de professores</h4>
+          <p>nome,email — um professor por linha · senha gerada automaticamente</p>
+        </div>
+        <div class="upload-status" id="statusProfs"></div>
+        <div id="profsGeradosWrap" style="display:none;margin-top:1rem">
+          <div style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.5rem">Credenciais Geradas</div>
+          <div id="profsGeradosTable"></div>
+          <button class="btn-save" style="margin-top:0.875rem;width:100%" onclick="enviarCredenciaisProfessores()">
+            📧 Enviar Credenciais por E-mail
+          </button>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;text-align:center">
+            Requer configuração do EmailJS — veja o Guia de Configuração
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB ATRIBUIÇÕES -->
+    <div class="coord-panel" id="tab-atribuicoes">
+      <div class="card-section">
+        <h3>Atribuição de Trabalhos aos Avaliadores</h3>
+        <p>Cada trabalho deve ter exatamente 2 avaliadores. Selecione os professores para cada aluno.</p>
+        <div class="table-wrap">
+          <table id="atribTable">
+            <thead>
+              <tr>
+                <th>Aluno</th>
+                <th>Código</th>
+                <th>Avaliador 1</th>
+                <th>Avaliador 2</th>
+              </tr>
+            </thead>
+            <tbody id="atribBody">
+              <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem">
+                Faça o upload dos dados na aba Uploads primeiro.
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="actions">
+          <button class="btn-save" onclick="salvarAtribuicoes()">💾 Salvar Atribuições</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB RESULTADOS -->
+    <div class="coord-panel" id="tab-resultados">
+      <div class="card-section" style="margin-bottom:1rem">
+        <h3>Resultados Consolidados</h3>
+        <p>Médias calculadas automaticamente quando ambos os avaliadores finalizaram.</p>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.75rem">
+          <button class="btn-primary" style="width:auto;padding:9px 20px" onclick="loadResultados()">🔄 Atualizar</button>
+          <button class="btn-save" style="padding:9px 20px" onclick="liberarResultados()">
+            📧 Liberar e Enviar Resultados aos Alunos
+          </button>
+        </div>
+        <div id="liberarStatus" style="display:none;margin-top:0.75rem;font-size:0.8rem;padding:0.6rem 1rem;border-radius:7px"></div>
+      </div>
+      <div class="results-grid" id="resultsGrid">
+        <div class="loading">Clique em Atualizar para carregar os resultados.</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// ESTRUTURA DE AVALIAÇÃO
+// ══════════════════════════════════════════════════════
+const NIVEIS = [
+  { nivel:0, nome:"Não entrega", pts:0.0 },
+  { nivel:1, nome:"Insuficiente", pts:0.25 },
+  { nivel:2, nome:"Parcial", pts:1.0 },
+  { nivel:3, nome:"Adequado", pts:1.75 },
+  { nivel:4, nome:"Bom", pts:2.0 },
+  { nivel:5, nome:"Pleno", pts:2.5 }
+];
+
+const CAMPOS = [
+  { id:"c1", num:"Campo 1", titulo:"Delimitação do Tema e Fenômeno",
+    criterios:[
+      { id:"clareza", nome:"Clareza", critico:true,
+        orientacao:"O tema está delimitado com precisão dentro de um campo reconhecível? O fenômeno está distinto do tema e nomeado com precisão? A problemática emerge do estado da arte e aponta uma lacuna específica? A pergunta de pesquisa é distinta da problemática — enquanto uma descreve o problema, a outra o operacionaliza em questão investigável?" },
+      { id:"fund", nome:"Fundamentação", critico:true,
+        orientacao:"O contexto temático é sustentado por referências acadêmicas qualificadas — artigos de periódicos reconhecidos e/ou obras consolidadas? A lacuna identificada na problemática está ancorada na literatura, não apenas na percepção do autor?" }
+    ]},
+  { id:"c2", num:"Campo 2", titulo:"Justificativa",
+    criterios:[
+      { id:"clareza", nome:"Clareza", critico:true,
+        orientacao:"Relevância social e contribuição técnica/científica estão claramente distinguidas? A relevância social identifica com precisão quais grupos ou contextos são afetados e de que forma? A contribuição técnica explicita como o TFG avança em relação ao que já foi produzido — preenchendo lacuna, propondo abordagem nova ou articulando campos ainda não conectados?" },
+      { id:"fund", nome:"Fundamentação", critico:true,
+        orientacao:"A relevância social é sustentada por dados de fontes confiáveis — institutos de pesquisa, organismos internacionais, legislação, relatórios técnicos? A contribuição técnica é fundamentada em referências acadêmicas que contextualizam o estado atual do conhecimento?" }
+    ]},
+  { id:"c3a", num:"Campo 3A", titulo:"Objetivo Geral",
+    criterios:[
+      { id:"clareza", nome:"Clareza", critico:true,
+        orientacao:"O objetivo é enunciado em frase única e direta com verbo de ação projetual no infinitivo — projetar, propor, desenvolver, elaborar? Nomeia um produto arquitetônico ou urbanístico concreto? Define escala ou recorte territorial que decorre do fenômeno declarado? Está contido — sem estratégias, dimensões programáticas ou etapas que pertenceriam aos objetivos específicos?" }
+    ]},
+  { id:"c3b", num:"Campo 3B", titulo:"Objetivos Específicos",
+    criterios:[
+      { id:"clareza", nome:"Clareza", critico:true,
+        orientacao:"Cada objetivo é um enunciado distinto com verbo no infinitivo que nomeia o que o TFG produz ou demonstra em relação ao fenômeno e ao território? Estão ausentes os desvios clássicos: objetivos de pesquisa disfarçados (\"revisar\", \"conhecer\"); estratégias projetuais disfarçadas (\"aplicar biofilia\"); programa disfarçado de objetivo (\"prever espaços de convivência\")?" },
+      { id:"coerencia", nome:"Coerência", critico:true,
+        orientacao:"Os específicos somados constroem e justificam o objetivo geral — nenhum aponta direção diferente? São distintos entre si, sem sobreposição significativa, cada um cobrindo uma dimensão diferente do percurso projetual?" }
+    ]},
+  { id:"c4", num:"Campo 4", titulo:"Revisão de Literatura",
+    criterios:[
+      { id:"clareza", nome:"Clareza", critico:true,
+        orientacao:"As abordagens estão organizadas por eixos temáticos, não por autor em sequência? Convergências e tensões entre abordagens estão explicitadas? A lacuna que justifica o TFG está claramente apontada? Os conceitos discutidos são teóricos — explicam o fenômeno?",
+        atencao:"Referencial teórico não se confunde com referencial projetual — estratégias, sistemas construtivos e programas não constituem revisão de literatura." },
+      { id:"fund", nome:"Fundamentação", critico:true,
+        orientacao:"As referências são acadêmicas e qualificadas? Há equilíbrio entre clássicos e recentes? Quando o fenômeno tem dimensão técnica, a literatura técnica correspondente está presente? Toda afirmação sobre o estado da arte tem referência identificada?" }
+    ]},
+  { id:"c5", num:"Campo 5", titulo:"Conceitos Estruturantes",
+    criterios:[
+      { id:"clareza", nome:"Clareza", critico:true,
+        orientacao:"Entre 3 e 5 conceitos estão presentes? Cada conceito é definido com precisão a partir de autores — não de senso comum? Os conceitos são teóricos — explicam, interpretam ou problematizam o fenômeno? A seleção decorre das abordagens identificadas na revisão de literatura?",
+        atencao:"Os mesmos desvios do Campo 4 se aplicam aqui — conceitos operativos de projeto, estratégias projetuais e itens de programa não constituem conceitos estruturantes." },
+      { id:"fund", nome:"Fundamentação", critico:true,
+        orientacao:"Cada conceito está definido a partir de referências acadêmicas qualificadas? A perspectiva teórica específica dentro da qual cada conceito será trabalhado está explicitada? Os conceitos têm continuidade com as abordagens identificadas no Campo 4?" }
+    ]},
+  { id:"c6", num:"Campo 6", titulo:"Síntese Interpretativa e Diagrama",
+    criterios:[
+      { id:"coerencia-sintese", nome:"Coerência — Síntese", critico:true,
+        orientacao:"A síntese produz argumento novo — não repete as definições do Campo 5 nem resume o Campo 4? Os conceitos estão articulados entre si com relações explicitadas — complementaridade, tensão, hierarquia? O fechamento em direção ao fenômeno e à pergunta de pesquisa está presente e identificável?" },
+      { id:"coerencia-diag", nome:"Coerência — Diagrama", critico:true,
+        orientacao:"Os nós correspondem aos conceitos do Campo 5? As linhas de ligação têm verbos de transição que explicitam a natureza da relação entre conceitos? A hierarquia entre conceitos está visualmente legível? O fenômeno está presente e identificável no diagrama?",
+        atencao:"O diagrama não é mapa mental livre nem fluxograma de etapas do projeto — é a expressão gráfica do marco teórico construído na síntese." }
+    ]},
+  { id:"c7", num:"Campo 7", titulo:"Referências Bibliográficas",
+    criterios:[
+      { id:"fund", nome:"Fundamentação", critico:true,
+        orientacao:"Todas as referências citadas no corpo do texto estão listadas? Apenas as efetivamente utilizadas aparecem — sem referências por prestígio? O conjunto é academicamente qualificado? A formatação segue a NBR 6023/24 de forma consistente? Há correspondência entre o sistema autor-data no corpo do texto e a lista final?" }
+    ]}
+];
+
+// ══════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ══════════════════════════════════════════════════════
+let currentUser = null;
+let currentWork = null;
+let localEvals = {};
+let dbAlunos = {};
+let dbTrabalhos = {};
+let dbProfessores = {};
+let dbAtribuicoes = {};
+
+// ══════════════════════════════════════════════════════
+// FIREBASE HELPERS
+// ══════════════════════════════════════════════════════
+async function dbRead(path) {
+  if (!window._firebaseReady) return null;
+  try {
+    const snap = await window._dbGet(window._dbRef(window._db, path));
+    return snap.exists() ? snap.val() : null;
+  } catch(e) { console.error("dbRead", path, e); return null; }
+}
+
+async function dbWrite(path, data) {
+  if (!window._firebaseReady) return false;
+  try {
+    await window._dbSet(window._dbRef(window._db, path), data);
+    return true;
+  } catch(e) { console.error("dbWrite", path, e); return false; }
+}
+
+async function dbMerge(path, data) {
+  if (!window._firebaseReady) return false;
+  try {
+    await window._dbUpdate(window._dbRef(window._db, path), data);
+    return true;
+  } catch(e) { console.error("dbMerge", path, e); return false; }
+}
+
+// ══════════════════════════════════════════════════════
+// LOGIN / LOGOUT
+// ══════════════════════════════════════════════════════
+async function doLogin() {
+  const user = document.getElementById("loginUser").value.trim().toLowerCase();
+  const pass = document.getElementById("loginPass").value.trim();
+  document.getElementById("loginError").style.display = "none";
+
+  // Buscar professores do Firebase
+  const profs = await dbRead("professores");
+  if (!profs) {
+    // Modo demo — sem Firebase configurado
+    demoLogin(user, pass);
+    return;
+  }
+
+  dbProfessores = profs;
+  const prof = profs[user];
+  if (prof && prof.senha === pass) {
+    currentUser = { id: user, ...prof };
+    afterLogin();
+  } else {
+    document.getElementById("loginError").style.display = "block";
+  }
+}
+
+// Demo sem Firebase
+function demoLogin(user, pass) {
+  const DEMO = {
+    "ana.lima":     { nome:"Prof. Ana Lima",    senha:"tfg2026A", trabalhos:["T01","T02"], isCoord:false },
+    "carlos.mota":  { nome:"Prof. Carlos Mota", senha:"tfg2026B", trabalhos:["T02","T03"], isCoord:false },
+    "coordenador":  { nome:"Coordenador",        senha:"coord2026", trabalhos:[], isCoord:true }
+  };
+  const p = DEMO[user];
+  if (p && p.senha === pass) {
+    currentUser = { id: user, ...p };
+    // dados demo
+    dbAlunos = {
+      "A01":{ nome:"Gabriela Arce",    email:"g.arce@uni.br",    codigo:"TFG-001" },
+      "A02":{ nome:"Vitoria Bacega",   email:"v.bacega@uni.br",  codigo:"TFG-002" },
+      "A03":{ nome:"Gustavo Barbosa",  email:"g.barbosa@uni.br", codigo:"TFG-003" }
+    };
+    dbTrabalhos = {
+      "T01":{ alunoId:"A01", pdf:"", titulo:"Trabalho 001" },
+      "T02":{ alunoId:"A02", pdf:"", titulo:"Trabalho 002" },
+      "T03":{ alunoId:"A03", pdf:"", titulo:"Trabalho 003" }
+    };
+    dbAtribuicoes = {
+      "T01":{ av1:"ana.lima",   av2:"carlos.mota" },
+      "T02":{ av1:"ana.lima",   av2:"carlos.mota" },
+      "T03":{ av1:"carlos.mota",av2:"ana.lima"    }
+    };
+    afterLogin();
+  } else {
+    document.getElementById("loginError").style.display = "block";
+  }
+}
+
+function afterLogin() {
+  document.getElementById("btnLogout").style.display = "block";
+  document.getElementById("headerSub").textContent = currentUser.nome + " · Avaliação cega";
+  if (currentUser.isCoord) {
+    showScreen("coordScreen");
+    loadCoordData();
+  } else {
+    showScreen("workListScreen");
+    loadWorkList();
+  }
+}
+
+function doLogout() {
+  currentUser = null;
+  currentWork = null;
+  localEvals = {};
+  document.getElementById("btnLogout").style.display = "none";
+  document.getElementById("scorePill").style.display = "none";
+  document.getElementById("headerSub").textContent = "Avaliação cega · Acesso restrito";
+  document.getElementById("loginUser").value = "";
+  document.getElementById("loginPass").value = "";
+  document.getElementById("loginError").style.display = "none";
+  showScreen("loginScreen");
+}
+
+// ══════════════════════════════════════════════════════
+// NAVEGAÇÃO
+// ══════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => {
+    s.classList.remove("active");
+    s.style.display = "none";
+  });
+  const target = document.getElementById(id);
+  target.classList.add("active");
+  // loginScreen precisa de flex para centralizar
+  target.style.display = (id === "loginScreen") ? "flex" : "block";
+  window.scrollTo(0, 0);
+}
+
+function goBack() {
+  saveEvalSilent();
+  document.getElementById("scorePill").style.display = "none";
+  document.getElementById("headerSub").textContent = currentUser.nome + " · Avaliação cega";
+  showScreen("workListScreen");
+  loadWorkList();
+}
+
+// ══════════════════════════════════════════════════════
+// LISTA DE TRABALHOS
+// ══════════════════════════════════════════════════════
+async function loadWorkList() {
+  document.getElementById("profName").textContent = "Olá, " + currentUser.nome.replace("Prof. ","");
+
+  // Buscar atribuições do Firebase
+  const atrib = await dbRead("atribuicoes") || dbAtribuicoes;
+  dbAtribuicoes = atrib;
+
+  // Quais trabalhos estão atribuídos a este professor?
+  const meusTrabalhos = [];
+  Object.entries(atrib).forEach(([tid, a]) => {
+    if (a.av1 === currentUser.id || a.av2 === currentUser.id) {
+      meusTrabalhos.push(tid);
+    }
+  });
+
+  // Se não há atribuições, usar lista local (demo)
+  const lista = meusTrabalhos.length > 0 ? meusTrabalhos : (currentUser.trabalhos || []);
+  document.getElementById("profSub").textContent = lista.length + " trabalho(s) designado(s).";
+
+  const trab = await dbRead("trabalhos") || dbTrabalhos;
+  dbTrabalhos = trab;
+  const alunos = await dbRead("alunos") || dbAlunos;
+  dbAlunos = alunos;
+
+  const container = document.getElementById("workCards");
+  container.innerHTML = "";
+
+  if (lista.length === 0) {
+    container.innerHTML = `<div class="loading">Nenhum trabalho atribuído ainda. Aguarde o coordenador.</div>`;
+    return;
+  }
+
+  for (const tid of lista) {
+    const w = trab[tid];
+    if (!w) continue;
+    // Checar Firebase primeiro, fallback para localEvals (modo sem Firebase)
+    const evFirebase = await dbRead(`avaliacoes/${tid}/${currentUser.id}`);
+    const evLocal    = localEvals[tid] || {};
+    const ev = evFirebase || evLocal;
+    // Sincronizar localEvals com o que veio do Firebase
+    if (evFirebase) localEvals[tid] = evFirebase;
+    const done = ev.saved === true;
+    const nota = done ? calcTotalFromEv(ev).toFixed(1) : null;
+
+    const card = document.createElement("div");
+    card.className = "work-card" + (done ? " done" : "");
+    card.onclick = () => openWork(tid);
+    card.innerHTML = `
+      <div class="work-card-info">
+        <h3>${w.titulo || tid}</h3>
+        <p>${w.codigo || tid} · Avaliação cega</p>
+      </div>
+      <span class="badge ${done ? 'badge-done' : 'badge-pending'}">
+        ${done ? "✓ " + nota + "/10" : "Pendente"}
+      </span>`;
+    container.appendChild(card);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// ABRIR TRABALHO
+// ══════════════════════════════════════════════════════
+async function openWork(tid) {
+  // ── Limpar estado do trabalho anterior ──
+  currentWork = tid;
+
+  // Limpar campos fixos que não são reconstruídos por buildCampos()
+  const gcEl = document.getElementById("generalComment");
+  const anEl = document.getElementById("ajusteNota");
+  const ajEl = document.getElementById("ajusteJustif");
+  if (gcEl) gcEl.value = "";
+  if (anEl) anEl.value = "";
+  if (ajEl) ajEl.value = "";
+
+  const w = dbTrabalhos[tid] || {};
+  document.getElementById("workTitle").textContent = w.titulo || tid;
+  document.getElementById("workCode").textContent = (w.codigo || tid) + " · Avaliação cega";
+
+  // PDF
+  if (w.pdf) {
+    document.getElementById("pdfFrame").src = w.pdf;
+    document.getElementById("pdfFrame").classList.remove("collapsed");
+    document.querySelector(".pdf-toggle").textContent = "Recolher";
+  } else {
+    document.getElementById("pdfFrame").srcdoc =
+      `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:sans-serif;color:#999;flex-direction:column;gap:8px">
+        <div style="font-size:2rem">📄</div>
+        <div style="text-align:center">PDF não disponível neste ambiente de demonstração.<br>Em produção, o arquivo é carregado automaticamente.</div>
+      </div>`;
+  }
+
+  // Reconstruir campos do DOM (limpa seleções anteriores)
+  buildCampos();
+
+  // Carregar avaliação salva — Firebase primeiro, fallback local
+  const evFirebase = await dbRead(`avaliacoes/${tid}/${currentUser.id}`);
+  const ev = evFirebase || localEvals[tid] || {};
+  localEvals[tid] = ev;
+
+  // Restaurar somente se há dados — campos já estão limpos
+  restoreEval(ev);
+  updateScore();
+  buildScoreSummary();
+
+  document.getElementById("scorePill").style.display = "flex";
+  document.getElementById("headerSub").textContent = (w.titulo || tid) + " · Avaliação em andamento";
+  showScreen("evalScreen");
+}
+
+// ══════════════════════════════════════════════════════
+// CONSTRUIR CAMPOS
+// ══════════════════════════════════════════════════════
+function buildCampos() {
+  const container = document.getElementById("camposContainer");
+  container.innerHTML = "";
+  CAMPOS.forEach(campo => {
+    const card = document.createElement("div");
+    card.className = "campo-card";
+    card.innerHTML = `
+      <div class="campo-header">
+        <div><span class="campo-num">${campo.num}</span><span class="campo-title">${campo.titulo}</span></div>
+        <span class="campo-score-badge" id="badge-${campo.id}">—</span>
+      </div>
+      <div class="campo-body" id="body-${campo.id}"></div>`;
+    container.appendChild(card);
+
+    const body = card.querySelector(`#body-${campo.id}`);
+    campo.criterios.forEach(crit => {
+      const block = document.createElement("div");
+      block.className = "criterio-block";
+      const orientHtml = crit.atencao
+        ? `<div class="orientacao">${crit.orientacao}<br><br><span class="atencao">⚠ Atenção: ${crit.atencao}</span></div>`
+        : `<div class="orientacao">${crit.orientacao}</div>`;
+      block.innerHTML = `
+        <div class="criterio-label">
+          ${crit.nome}
+          ${crit.critico ? '<span class="critico-tag">Critério crítico</span>' : ''}
+        </div>
+        ${orientHtml}
+        <div class="nivel-selector" data-campo="${campo.id}" data-criterio="${crit.id}"></div>
+        <div class="comment-area" id="ca-${campo.id}-${crit.id}">
+          <label>⚠ Comentário obrigatório — nota abaixo de 7</label>
+          <textarea data-campo="${campo.id}" data-criterio="${crit.id}"
+            placeholder="Indique o que está ausente ou inadequado neste critério..."></textarea>
+        </div>`;
+      body.appendChild(block);
+      buildNivelSelector(block.querySelector(".nivel-selector"), campo.id, crit.id);
+    });
+  });
+
+  buildNivelSelector(
+    document.querySelector('[data-campo="transversal"][data-criterio="org"].nivel-selector'),
+    "transversal","org"
+  );
+}
+
+function buildNivelSelector(container, campoId, critId) {
+  if (!container) return;
+  container.innerHTML = "";
+  NIVEIS.forEach(n => {
+    const btn = document.createElement("div");
+    btn.className = "nivel-btn";
+    btn.dataset.nivel = n.nivel;
+    btn.dataset.campo = campoId;
+    btn.dataset.criterio = critId;
+    btn.innerHTML = `<div class="nivel-name">${n.nome}</div><div class="nivel-pts">${n.pts.toFixed(2)}</div>`;
+    btn.onclick = () => selectNivel(campoId, critId, n.nivel, n.pts);
+    container.appendChild(btn);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// SELECIONAR NÍVEL
+// ══════════════════════════════════════════════════════
+function selectNivel(campoId, critId, nivel, pts) {
+  if (!localEvals[currentWork]) localEvals[currentWork] = {};
+  if (!localEvals[currentWork][campoId]) localEvals[currentWork][campoId] = {};
+  localEvals[currentWork][campoId][critId] = { nivel, pts };
+
+  document.querySelectorAll(`.nivel-btn[data-campo="${campoId}"][data-criterio="${critId}"]`)
+    .forEach(b => b.classList.toggle("selected", parseInt(b.dataset.nivel) === nivel));
+
+  updateCampoScore(campoId);
+  updateScore();
+  buildScoreSummary();
+}
+
+function updateCampoScore(campoId) {
+  const campoEv = (localEvals[currentWork] || {})[campoId] || {};
+  const campo = CAMPOS.find(c => c.id === campoId);
+  const criterios = campoId === "transversal" ? [{id:"org"}] : campo?.criterios || [];
+
+  let total = 0, count = 0;
+  criterios.forEach(c => {
+    if (campoEv[c.id] !== undefined) { total += campoEv[c.id].pts; count++; }
+  });
+  const nota = count === 0 ? null : (total / (criterios.length * 2.5)) * 10;
+
+  const badge = document.getElementById("badge-" + campoId);
+  if (badge) {
+    badge.textContent = nota === null ? "—" : nota.toFixed(1) + "/10";
+    badge.className = "campo-score-badge" + (nota === null ? "" : nota < 7 ? " low" : " scored");
+  }
+
+  criterios.forEach(c => {
+    const critEv = campoEv[c.id];
+    const caEl = document.getElementById(`ca-${campoId}-${c.id}`);
+    if (caEl && critEv !== undefined) {
+      const n = (critEv.pts / 2.5) * 10;
+      caEl.classList.toggle("visible", n < 7);
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// CALCULAR TOTAL
+// ══════════════════════════════════════════════════════
+function calcTotalFromEv(ev) {
+  let pts = 0, max = 0;
+  CAMPOS.forEach(campo => {
+    campo.criterios.forEach(c => {
+      max += 2.5;
+      const v = (ev[campo.id] || {})[c.id];
+      if (v !== undefined) pts += v.pts;
+    });
+  });
+  max += 2.5;
+  if ((ev.transversal || {}).org !== undefined) pts += ev.transversal.org.pts;
+  if (max === 0) return 0;
+  const ajuste = parseFloat(ev.ajusteNota);
+  if (!isNaN(ajuste) && ajuste >= 0 && ajuste <= 10) return ajuste;
+  return Math.round((pts/max)*100)/10;
+}
+
+function updateScore() {
+  const ev = localEvals[currentWork] || {};
+  // ajuste manual
+  const aj = parseFloat(document.getElementById("ajusteNota")?.value);
+  const total = !isNaN(aj) && aj >= 0 && aj <= 10 ? aj : calcTotalFromEv(ev);
+  const el = document.getElementById("scoreVal");
+  if (el) el.textContent = total > 0 ? total.toFixed(1) : "—";
+}
+
+function buildScoreSummary() {
+  const ev = localEvals[currentWork] || {};
+  const container = document.getElementById("scoreSummary");
+  if (!container) return;
+  container.innerHTML = "";
+
+  [...CAMPOS.map(c=>({id:c.id,label:c.num.replace("Campo ","C"),criterios:c.criterios})),
+   {id:"transversal",label:"Org.",criterios:[{id:"org"}]}
+  ].forEach(f => {
+    const campoEv = ev[f.id] || {};
+    let total=0,count=0;
+    f.criterios.forEach(c => { if(campoEv[c.id]!==undefined){total+=campoEv[c.id].pts;count++;} });
+    const nota = count===0 ? null : (total/(f.criterios.length*2.5))*10;
+    const item = document.createElement("div");
+    item.className = "score-item";
+    item.innerHTML = `
+      <div class="s-label">${f.label}</div>
+      <div class="s-val" style="color:${nota===null?'#ccc':nota<7?'var(--danger)':'var(--accent)'}">
+        ${nota===null?"—":nota.toFixed(1)}
+      </div>`;
+    container.appendChild(item);
+  });
+
+  const totalItem = document.createElement("div");
+  totalItem.className = "score-item total";
+  const t = calcTotalFromEv(ev);
+  totalItem.innerHTML = `<div class="s-label">TOTAL</div><div class="s-val">${t>0?t.toFixed(1):"—"}</div>`;
+  container.appendChild(totalItem);
+}
+
+// ══════════════════════════════════════════════════════
+// RESTORE / SAVE
+// ══════════════════════════════════════════════════════
+function restoreEval(ev) {
+  // Sempre limpar todas as seleções antes de restaurar
+  document.querySelectorAll(".nivel-btn").forEach(b => b.classList.remove("selected"));
+  document.querySelectorAll(".comment-area").forEach(ca => ca.classList.remove("visible"));
+  document.querySelectorAll("textarea[data-campo]").forEach(ta => ta.value = "");
+
+  // Restaurar apenas se há dados salvos
+  CAMPOS.forEach(campo => {
+    campo.criterios.forEach(c => {
+      const v = (ev[campo.id]||{})[c.id];
+      if (v !== undefined) {
+        document.querySelectorAll(`.nivel-btn[data-campo="${campo.id}"][data-criterio="${c.id}"]`)
+          .forEach(b => b.classList.toggle("selected", parseInt(b.dataset.nivel) === v.nivel));
+        updateCampoScore(campo.id);
+      }
+    });
+  });
+  if ((ev.transversal||{}).org !== undefined) {
+    document.querySelectorAll(`.nivel-btn[data-campo="transversal"][data-criterio="org"]`)
+      .forEach(b => b.classList.toggle("selected", parseInt(b.dataset.nivel) === ev.transversal.org.nivel));
+    updateCampoScore("transversal");
+  }
+  document.querySelectorAll("textarea[data-campo]").forEach(ta => {
+    const k = `${ta.dataset.campo}_${ta.dataset.criterio}_comment`;
+    if (ev[k]) ta.value = ev[k];
+  });
+  // Campos fixos — só preencher se existirem no ev
+  const gcEl = document.getElementById("generalComment");
+  const anEl = document.getElementById("ajusteNota");
+  const ajEl = document.getElementById("ajusteJustif");
+  if (gcEl) gcEl.value = ev.generalComment || "";
+  if (anEl) anEl.value = ev.ajusteNota || "";
+  if (ajEl) ajEl.value = ev.ajusteJustif || "";
+}
+
+function collectEval() {
+  if (!localEvals[currentWork]) localEvals[currentWork] = {};
+  const ev = localEvals[currentWork];
+  document.querySelectorAll("textarea[data-campo]").forEach(ta => {
+    ev[`${ta.dataset.campo}_${ta.dataset.criterio}_comment`] = ta.value;
+  });
+  ev.generalComment = document.getElementById("generalComment")?.value || "";
+  ev.ajusteNota = document.getElementById("ajusteNota")?.value || "";
+  ev.ajusteJustif = document.getElementById("ajusteJustif")?.value || "";
+  ev.timestamp = Date.now();
+}
+
+async function saveEval() {
+  collectEval();
+  if (!localEvals[currentWork]) localEvals[currentWork] = {};
+  localEvals[currentWork].saved = true;
+  localEvals[currentWork].savedAt = new Date().toISOString();
+  const ok = await dbWrite(`avaliacoes/${currentWork}/${currentUser.id}`, localEvals[currentWork]);
+  showToast(ok ? "✅ Avaliação salva!" : "✅ Avaliação salva localmente!");
+  setTimeout(() => goBack(), 1000);
+}
+
+function saveEvalSilent() {
+  collectEval();
+  if (currentWork && window._firebaseReady) {
+    dbWrite(`avaliacoes/${currentWork}/${currentUser.id}`, localEvals[currentWork]);
+  }
+}
+
+function clearEval() {
+  if (!confirm("Deseja limpar toda a avaliação deste trabalho?")) return;
+  localEvals[currentWork] = {};
+  buildCampos();
+  document.getElementById("generalComment").value = "";
+  document.getElementById("ajusteNota").value = "";
+  document.getElementById("ajusteJustif").value = "";
+  buildScoreSummary();
+  updateScore();
+}
+
+// ══════════════════════════════════════════════════════
+// COORDENADOR — UPLOADS
+// ══════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll(".coord-tab").forEach((t,i) => {
+    const tabs = ["uploads","atribuicoes","resultados"];
+    t.classList.toggle("active", tabs[i]===tab);
+  });
+  document.querySelectorAll(".coord-panel").forEach(p => p.classList.remove("active"));
+  document.getElementById(`tab-${tab}`).classList.add("active");
+  if (tab==="atribuicoes") loadAtribTable();
+  if (tab==="resultados") loadResultados();
+}
+
+function handleAlunosCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const lines = e.target.result.trim().split("\n").filter(l=>l.trim());
+    const alunos = {};
+    let count = 0;
+    lines.forEach((line, i) => {
+      if (i===0 && line.toLowerCase().includes("nome")) return; // header
+      const parts = line.split(",").map(s=>s.trim());
+      if (parts.length < 2) return;
+      const id = "A" + String(i).padStart(3,"0");
+      alunos[id] = { nome: parts[0], email: parts[1], codigo: "TFG-" + String(i).padStart(3,"0") };
+      count++;
+    });
+    dbAlunos = alunos;
+    const ok = await dbWrite("alunos", alunos);
+    const st = document.getElementById("statusAlunos");
+    st.className = "upload-status ok";
+    st.textContent = `✓ ${count} aluno(s) carregado(s)${ok ? " e salvo(s) no Firebase" : " (Firebase não configurado)"}`;
+  };
+  reader.readAsText(file);
+}
+
+function handleZip(input) {
+  // Em produção: usa JSZip para descompactar e extrair nomes
+  // Aqui simulamos o feedback
+  const file = input.files[0];
+  if (!file) return;
+  const st = document.getElementById("statusZip");
+  st.className = "upload-status ok";
+  st.textContent = `✓ ZIP recebido: ${file.name} — em produção, os PDFs seriam extraídos e vinculados aos alunos automaticamente.`;
+}
+
+function gerarSenha(nome, email) {
+  // TFG + 4 letras do sobrenome + ano
+  const sobrenome = nome.trim().split(" ").slice(-1)[0].replace(/[^a-zA-Z]/g,"").slice(0,4);
+  const ano = new Date().getFullYear();
+  return "TFG" + sobrenome.charAt(0).toUpperCase() + sobrenome.slice(1).toLowerCase() + ano;
+}
+
+function handleProfsCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const lines = e.target.result.trim().split("\n").filter(l=>l.trim());
+    const profs = {};
+    profs["coordenador"] = { nome:"Coordenador", email:"", senha:"coord2026", isCoord:true, trabalhos:[] };
+    let count = 0;
+    const gerados = [];
+    lines.forEach((line, i) => {
+      if (i===0 && line.toLowerCase().includes("nome")) return;
+      const parts = line.split(",").map(s=>s.trim());
+      if (parts.length < 2) return;
+      const userId = parts[1].split("@")[0].toLowerCase().replace(/[^a-z0-9.]/g,".");
+      const senha = gerarSenha(parts[0], parts[1]);
+      profs[userId] = { nome:parts[0], email:parts[1], senha, isCoord:false, trabalhos:[], credEnviado:false };
+      gerados.push({ userId, nome:parts[0], email:parts[1], senha });
+      count++;
+    });
+    dbProfessores = profs;
+    const ok = await dbWrite("professores", profs);
+
+    // Mostrar tabela de credenciais geradas
+    const wrap = document.getElementById("profsGeradosWrap");
+    const tbl = document.getElementById("profsGeradosTable");
+    wrap.style.display = "block";
+    tbl.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <thead>
+          <tr>
+            <th style="background:var(--surface2);padding:6px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:0.68rem;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted)">Nome</th>
+            <th style="background:var(--surface2);padding:6px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:0.68rem;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted)">Usuário</th>
+            <th style="background:var(--surface2);padding:6px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:0.68rem;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted)">Senha Gerada</th>
+            <th style="background:var(--surface2);padding:6px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:0.68rem;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted)">E-mail</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${gerados.map(g=>`
+            <tr>
+              <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${g.nome}</td>
+              <td style="padding:6px 10px;border-bottom:1px solid var(--border);font-family:monospace">${g.userId}</td>
+              <td style="padding:6px 10px;border-bottom:1px solid var(--border);font-family:monospace;color:var(--accent);font-weight:600">${g.senha}</td>
+              <td style="padding:6px 10px;border-bottom:1px solid var(--border);color:var(--muted)">${g.email}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>`;
+
+    const st = document.getElementById("statusProfs");
+    st.className = "upload-status ok";
+    st.textContent = `✓ ${count} professor(es) carregado(s) · senhas geradas automaticamente${ok?" e salvo(s) no Firebase":" (Firebase não configurado)"}`;
+  };
+  reader.readAsText(file);
+}
+
+async function enviarCredenciaisProfessores() {
+  // EmailJS — configurar SERVICE_ID, TEMPLATE_ID e PUBLIC_KEY no guia
+  const EMAILJS_SERVICE  = "SEU_SERVICE_ID";
+  const EMAILJS_TEMPLATE = "SEU_TEMPLATE_CREDENCIAIS";
+  const EMAILJS_KEY      = "SUA_PUBLIC_KEY";
+  const SISTEMA_URL      = window.location.href;
+
+  const profs = Object.entries(dbProfessores).filter(([,p])=>!p.isCoord);
+  if (profs.length === 0) { showToast("⚠️ Nenhum professor carregado."); return; }
+
+  if (EMAILJS_SERVICE === "SEU_SERVICE_ID") {
+    // Modo sem EmailJS: mostrar modal com instruções manuais
+    const linhas = profs.map(([id,p])=>
+      `${p.nome} | usuário: ${id} | senha: ${p.senha} | ${p.email}`
+    ).join("\n");
+    alert("EmailJS não configurado.\n\nCredenciais para enviar manualmente:\n\n" + linhas + "\n\nLink do sistema: " + SISTEMA_URL);
+    return;
+  }
+
+  // Com EmailJS configurado
+  if (!window.emailjs) { showToast("⚠️ EmailJS não carregado."); return; }
+  emailjs.init(EMAILJS_KEY);
+  let enviados = 0;
+  for (const [id, p] of profs) {
+    try {
+      await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+        to_name: p.nome, to_email: p.email,
+        usuario: id, senha: p.senha, link: SISTEMA_URL
+      });
+      enviados++;
+    } catch(err) { console.error("Erro ao enviar para", p.email, err); }
+  }
+  showToast(`✅ Credenciais enviadas para ${enviados} professor(es)!`);
+  await dbMerge("professores", Object.fromEntries(profs.map(([id,p])=>[id,{...p,credEnviado:true}])));
+}
+
+// ══════════════════════════════════════════════════════
+// COORDENADOR — ATRIBUIÇÕES
+// ══════════════════════════════════════════════════════
+async function loadAtribTable() {
+  const alunos = await dbRead("alunos") || dbAlunos;
+  const profs = await dbRead("professores") || dbProfessores;
+  const atrib = await dbRead("atribuicoes") || dbAtribuicoes;
+  dbAlunos = alunos; dbProfessores = profs; dbAtribuicoes = atrib;
+
+  const tbody = document.getElementById("atribBody");
+  tbody.innerHTML = "";
+
+  const alunoIds = Object.keys(alunos);
+  if (alunoIds.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">Carregue a lista de alunos primeiro.</td></tr>`;
+    return;
+  }
+
+  const profOptions = Object.entries(profs)
+    .filter(([,p]) => !p.isCoord)
+    .map(([id,p]) => `<option value="${id}">${p.nome}</option>`)
+    .join("");
+
+  alunoIds.forEach(aid => {
+    const a = alunos[aid];
+    const tid = "T" + aid.slice(1);
+    const at = atrib[tid] || {};
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><strong>${a.nome}</strong><br><small style="color:var(--muted)">${a.email}</small></td>
+      <td>${a.codigo}</td>
+      <td>
+        <select class="select-prof" id="av1-${tid}">
+          <option value="">— selecionar —</option>${profOptions}
+        </select>
+      </td>
+      <td>
+        <select class="select-prof" id="av2-${tid}">
+          <option value="">— selecionar —</option>${profOptions}
+        </select>
+      </td>`;
+    tbody.appendChild(tr);
+    if (at.av1) document.getElementById(`av1-${tid}`).value = at.av1;
+    if (at.av2) document.getElementById(`av2-${tid}`).value = at.av2;
+  });
+}
+
+async function salvarAtribuicoes() {
+  const alunos = dbAlunos;
+  const atrib = {};
+  Object.keys(alunos).forEach(aid => {
+    const tid = "T" + aid.slice(1);
+    const av1 = document.getElementById(`av1-${tid}`)?.value;
+    const av2 = document.getElementById(`av2-${tid}`)?.value;
+    atrib[tid] = { av1: av1||"", av2: av2||"" };
+  });
+  dbAtribuicoes = atrib;
+  const ok = await dbWrite("atribuicoes", atrib);
+  showToast(ok ? "✅ Atribuições salvas!" : "⚠️ Salvo localmente — Firebase não configurado");
+}
+
+// ══════════════════════════════════════════════════════
+// COORDENADOR — RESULTADOS
+// ══════════════════════════════════════════════════════
+async function loadResultados() {
+  const grid = document.getElementById("resultsGrid");
+  grid.innerHTML = `<div class="loading">Carregando...</div>`;
+
+  const alunos = await dbRead("alunos") || dbAlunos;
+  const atrib = await dbRead("atribuicoes") || dbAtribuicoes;
+  const avaliacoes = await dbRead("avaliacoes") || {};
+
+  grid.innerHTML = "";
+
+  const alunoIds = Object.keys(alunos);
+  if (alunoIds.length === 0) {
+    grid.innerHTML = `<div class="loading">Nenhum dado disponível ainda.</div>`;
+    return;
+  }
+
+  alunoIds.forEach(aid => {
+    const a = alunos[aid];
+    const tid = "T" + aid.slice(1);
+    const at = atrib[tid] || {};
+    const ev1 = at.av1 ? (avaliacoes[tid]||{})[at.av1] : null;
+    const ev2 = at.av2 ? (avaliacoes[tid]||{})[at.av2] : null;
+
+    const n1 = ev1 ? calcTotalFromEv(ev1) : null;
+    const n2 = ev2 ? calcTotalFromEv(ev2) : null;
+    const media = (n1!==null && n2!==null) ? ((n1+n2)/2) : null;
+
+    const card = document.createElement("div");
+    card.className = "result-card";
+    card.innerHTML = `
+      <h4>${a.nome} <small style="color:var(--muted);font-weight:400">— ${a.codigo}</small></h4>
+      <div class="result-scores">
+        <div class="result-score">
+          <span class="rs-label">Avaliador 1: </span>
+          <span class="rs-val ${n1!==null&&n1<7?'low':''}">${n1!==null?n1.toFixed(1):"Pendente"}</span>
+        </div>
+        <div class="result-score">
+          <span class="rs-label">Avaliador 2: </span>
+          <span class="rs-val ${n2!==null&&n2<7?'low':''}">${n2!==null?n2.toFixed(1):"Pendente"}</span>
+        </div>
+      </div>
+      <div>
+        <span style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em">Média Final: </span>
+        <span class="result-avg ${media!==null&&media<7?'low':''}">${media!==null?media.toFixed(1):"—"}</span>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+async function liberarResultados() {
+  const EMAILJS_SERVICE  = "SEU_SERVICE_ID";
+  const EMAILJS_TEMPLATE = "SEU_TEMPLATE_RESULTADO";
+  const EMAILJS_KEY      = "SUA_PUBLIC_KEY";
+  const SISTEMA_URL      = window.location.href;
+
+  const alunos    = await dbRead("alunos")     || dbAlunos;
+  const atrib     = await dbRead("atribuicoes") || dbAtribuicoes;
+  const avaliacoes= await dbRead("avaliacoes")  || {};
+  const profs     = await dbRead("professores") || dbProfessores;
+
+  const statusEl = document.getElementById("liberarStatus");
+  statusEl.style.display = "block";
+  statusEl.style.background = "var(--warn-light)";
+  statusEl.style.color = "var(--warn)";
+  statusEl.textContent = "Preparando resultados...";
+
+  const resultados = [];
+  Object.entries(alunos).forEach(([aid, a]) => {
+    const tid = "T" + aid.slice(1);
+    const at  = atrib[tid] || {};
+    const ev1 = at.av1 ? (avaliacoes[tid]||{})[at.av1] : null;
+    const ev2 = at.av2 ? (avaliacoes[tid]||{})[at.av2] : null;
+    const n1  = ev1 ? calcTotalFromEv(ev1) : null;
+    const n2  = ev2 ? calcTotalFromEv(ev2) : null;
+    const media = (n1!==null && n2!==null) ? ((n1+n2)/2) : null;
+
+    // Montar comentários das fichas
+    const comentarios = [];
+    if (ev1?.generalComment) comentarios.push("Avaliador 1: " + ev1.generalComment);
+    if (ev2?.generalComment) comentarios.push("Avaliador 2: " + ev2.generalComment);
+
+    resultados.push({
+      nome: a.nome, email: a.email, codigo: a.codigo,
+      n1: n1?.toFixed(1) ?? "Pendente",
+      n2: n2?.toFixed(1) ?? "Pendente",
+      media: media?.toFixed(1) ?? "Aguardando ambas as avaliações",
+      comentarios: comentarios.join("\n\n") || "Nenhum comentário geral registrado.",
+      pronto: media !== null
+    });
+  });
+
+  const prontos   = resultados.filter(r=>r.pronto);
+  const pendentes = resultados.filter(r=>!r.pronto);
+
+  if (EMAILJS_SERVICE === "SEU_SERVICE_ID") {
+    // Modo sem EmailJS: resumo para envio manual
+    const resumo = resultados.map(r =>
+      `${r.nome} (${r.email})\n  Nota: ${r.media}\n  Comentários: ${r.comentarios}`
+    ).join("\n\n---\n\n");
+    alert(
+      `${prontos.length} resultado(s) prontos para envio.\n` +
+      (pendentes.length ? `${pendentes.length} ainda pendente(s): ${pendentes.map(r=>r.nome).join(", ")}\n\n` : "\n") +
+      "Resultados para envio manual:\n\n" + resumo
+    );
+    statusEl.style.background = "var(--ok-light)";
+    statusEl.style.color = "var(--ok)";
+    statusEl.textContent = `✓ ${prontos.length} resultado(s) prontos · ${pendentes.length} pendente(s) · EmailJS não configurado — envio manual necessário`;
+    return;
+  }
+
+  // Com EmailJS configurado
+  if (!window.emailjs) { showToast("⚠️ EmailJS não carregado."); return; }
+  emailjs.init(EMAILJS_KEY);
+  let enviados = 0;
+  for (const r of prontos) {
+    try {
+      await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+        to_name: r.nome, to_email: r.email,
+        codigo: r.codigo, nota_final: r.media,
+        avaliador1: r.n1, avaliador2: r.n2,
+        comentarios: r.comentarios, link: SISTEMA_URL
+      });
+      enviados++;
+    } catch(err) { console.error("Erro ao enviar para", r.email, err); }
+  }
+  statusEl.style.background = "var(--ok-light)";
+  statusEl.style.color = "var(--ok)";
+  statusEl.textContent = `✅ Resultados enviados para ${enviados} aluno(s).${pendentes.length?" "+pendentes.length+" ainda pendente(s).":""}`;
+  showToast(`✅ ${enviados} resultado(s) enviado(s)!`);
+}
+
+// ══════════════════════════════════════════════════════
+// COORDENADOR — CARREGAR DADOS
+// ══════════════════════════════════════════════════════
+async function loadCoordData() {
+  dbAlunos = await dbRead("alunos") || dbAlunos;
+  dbProfessores = await dbRead("professores") || dbProfessores;
+  dbAtribuicoes = await dbRead("atribuicoes") || dbAtribuicoes;
+}
+
+// ══════════════════════════════════════════════════════
+// PDF TOGGLE
+// ══════════════════════════════════════════════════════
+function togglePdf() {
+  const frame = document.getElementById("pdfFrame");
+  const btn = document.querySelector(".pdf-toggle");
+  const c = frame.classList.toggle("collapsed");
+  btn.textContent = c ? "Expandir" : "Recolher";
+}
+
+// ══════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3200);
+}
+// ── INIT ──
+(function init() {
+  // Esconder todas as telas via style direto
+  ["loginScreen","workListScreen","evalScreen","coordScreen"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+  // Mostrar login com flex
+  const login = document.getElementById("loginScreen");
+  if (login) {
+    login.classList.add("active");
+    login.style.display = "flex";
+  }
+})();
+</script>
+</body>
+</html>
