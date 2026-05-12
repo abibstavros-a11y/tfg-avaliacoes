@@ -401,12 +401,12 @@ tr:last-child td { border-bottom:none; }
             🗑 Limpar dados do semestre
           </button>
         </h3>
-        <p>CSV com colunas: <code>nome,email</code></p>
+        <p>CSV com colunas: <code>nome,email,turma</code> — turma é opcional</p>
         <div class="upload-zone" onclick="document.getElementById('uploadAlunos').click()">
           <input type="file" id="uploadAlunos" accept=".csv" onchange="handleAlunosCSV(this)">
           <div class="icon">👥</div>
           <h4>Clique para selecionar o CSV de alunos</h4>
-          <p>nome,email — um aluno por linha</p>
+          <p>nome,email,turma — um aluno por linha</p>
         </div>
         <div class="upload-status" id="statusAlunos"></div>
       </div>
