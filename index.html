@@ -5,162 +5,262 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Avaliação — TFG I</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, get, onValue, push, update }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // ════════════════════════════════════════
+  // CONFIGURAÇÃO FIREBASE
+  // Substitua pelos seus dados do Firebase Console
+  // ════════════════════════════════════════
+  const firebaseConfig = {
+    apiKey: "AIzaSyCB2E4YT7y8dNq9ZviFl8vDMICHaewejsk",
+    authDomain: "tfg-avaliacoes.firebaseapp.com",
+    databaseURL: "https://tfg-avaliacoes-default-rtdb.firebaseio.com",
+    projectId: "tfg-avaliacoes",
+    storageBucket: "tfg-avaliacoes.firebasestorage.app",
+    messagingSenderId: "915602242653",
+    appId: "1:915602242653:web:8218ab450d646a4a2421b4",
+    measurementId: "G-Q4EF8NRLTX"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Expor para o resto do código
+  window._db = db;
+  window._dbRef = ref;
+  window._dbSet = set;
+  window._dbGet = get;
+  window._dbUpdate = update;
+  window._dbOnValue = onValue;
+  window._firebaseReady = true;
+  window.dispatchEvent(new Event("firebaseReady"));
+</script>
+
 <style>
 :root {
-  --bg:#f7f5f2;--surface:#ffffff;--surface2:#f0ede8;--border:#e0dbd3;--border2:#ccc8c0;
-  --text:#1c1a17;--muted:#7a7570;--accent:#1a3a2a;--accent-light:#e8f0eb;--accent2:#c9a84c;
-  --danger:#8b2020;--danger-light:#fdf0f0;--warn:#7a4f00;--warn-light:#fdf6e3;
-  --ok:#1a3a2a;--ok-light:#e8f0eb;
-  --nivel-1:#fdf0f0;--nivel-2:#fdf6e3;--nivel-3:#f0f4ff;--nivel-4:#e8f0eb;
+  --bg: #f7f5f2;
+  --surface: #ffffff;
+  --surface2: #f0ede8;
+  --border: #e0dbd3;
+  --border2: #ccc8c0;
+  --text: #1c1a17;
+  --muted: #7a7570;
+  --accent: #1a3a2a;
+  --accent-light: #e8f0eb;
+  --accent2: #c9a84c;
+  --danger: #8b2020;
+  --danger-light: #fdf0f0;
+  --warn: #7a4f00;
+  --warn-light: #fdf6e3;
+  --ok: #1a3a2a;
+  --ok-light: #e8f0eb;
+  --nivel-1: #fdf0f0;
+  --nivel-2: #fdf6e3;
+  --nivel-3: #f0f4ff;
+  --nivel-4: #e8f0eb;
 }
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6;}
-header{background:var(--accent);color:white;padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 16px rgba(0,0,0,.2);}
-header h1{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:600;}
-header p{font-size:.75rem;opacity:.7;margin-top:1px;}
-.score-pill{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:24px;padding:5px 14px;text-align:center;display:none;}
-.score-pill .val{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:600;line-height:1;}
-.score-pill .lbl{font-size:.6rem;opacity:.7;letter-spacing:.08em;text-transform:uppercase;}
-.header-right{display:flex;align-items:center;gap:1rem;}
-.btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 12px;color:white;font-family:inherit;font-size:.775rem;cursor:pointer;display:none;transition:background .2s;}
-.btn-logout:hover{background:rgba(255,255,255,.25);}
-.container{max-width:880px;margin:0 auto;padding:2rem 1.5rem 4rem;}
-.screen{display:none;}
-#loginScreen.active{display:flex !important;align-items:center;justify-content:center;min-height:calc(100vh - 64px);}
-.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.08);}
-.login-card h2{font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:.25rem;}
-.login-card>p{color:var(--muted);font-size:.875rem;margin-bottom:1.75rem;}
-.form-group{margin-bottom:1.1rem;}
-.form-group label{display:block;font-size:.75rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
-.form-group input,.form-group select{width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 13px;font-family:inherit;font-size:.9rem;background:var(--bg);color:var(--text);outline:none;transition:border-color .2s;}
-.form-group input:focus,.form-group select:focus{border-color:var(--accent);}
-.btn-primary{width:100%;padding:11px;background:var(--accent);color:white;border:none;border-radius:8px;font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;}
-.btn-primary:hover{background:#122a1e;transform:translateY(-1px);box-shadow:0 4px 14px rgba(26,58,42,.3);}
-.login-error{color:var(--danger);font-size:.8rem;margin-top:.6rem;display:none;}
-.section-title{font-family:'Playfair Display',serif;font-size:1.25rem;margin-bottom:.2rem;padding-top:1.5rem;}
-.section-sub{color:var(--muted);font-size:.85rem;margin-bottom:1.5rem;}
-.work-cards{display:grid;gap:.875rem;}
-.work-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid transparent;border-radius:10px;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .2s;}
-.work-card:hover{border-color:var(--accent);border-left-color:var(--accent);box-shadow:0 3px 14px rgba(0,0,0,.06);}
-.work-card.done{border-left-color:var(--accent2);}
-.work-card-info h3{font-weight:600;font-size:.9rem;margin-bottom:2px;}
-.work-card-info p{font-size:.775rem;color:var(--muted);}
-.badge{font-size:.72rem;font-weight:600;padding:3px 11px;border-radius:20px;flex-shrink:0;}
-.badge-pending{background:var(--warn-light);color:var(--warn);}
-.badge-done{background:var(--ok-light);color:var(--ok);}
-.eval-header{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.4rem;margin-bottom:1.25rem;margin-top:1.5rem;display:flex;align-items:center;justify-content:space-between;}
-.eval-header h2{font-family:'Playfair Display',serif;font-size:1.1rem;}
-.eval-header p{font-size:.775rem;color:var(--muted);margin-top:2px;}
-.btn-back{background:none;border:1px solid var(--border);border-radius:7px;padding:6px 13px;font-family:inherit;font-size:.8rem;cursor:pointer;color:var(--muted);transition:all .2s;}
-.btn-back:hover{border-color:var(--accent);color:var(--accent);}
-.pdf-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:1.25rem;overflow:hidden;}
-.pdf-header{padding:.75rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2);}
-.pdf-header span{font-size:.75rem;font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;}
-.pdf-toggle{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 11px;font-family:inherit;font-size:.75rem;cursor:pointer;color:var(--muted);transition:all .2s;}
-.pdf-toggle:hover{border-color:var(--accent);color:var(--accent);}
-.pdf-frame{width:100%;height:480px;border:none;display:block;}
-.pdf-frame.collapsed{display:none;}
-.score-summary{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1.25rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:.6rem;}
-.score-item{text-align:center;padding:.6rem;border-radius:7px;background:var(--bg);border:1px solid var(--border);}
-.score-item .s-label{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;line-height:1.3;}
-.score-item .s-val{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--accent);}
-.score-item.total{background:var(--accent);border-color:var(--accent);}
-.score-item.total .s-label{color:rgba(255,255,255,.7);}
-.score-item.total .s-val{color:white;font-size:1.5rem;}
-.campo-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:1rem;overflow:hidden;}
-.campo-header{padding:.875rem 1.25rem;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between;}
-.campo-num{font-family:'Playfair Display',serif;font-size:.775rem;color:var(--muted);margin-right:7px;}
-.campo-title{font-weight:600;font-size:.9rem;}
-.campo-score-badge{font-size:.775rem;font-weight:700;padding:2px 11px;border-radius:20px;background:var(--bg);border:1px solid var(--border);color:var(--muted);transition:all .3s;}
-.campo-score-badge.scored{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
-.campo-score-badge.low{background:var(--danger-light);border-color:var(--danger);color:var(--danger);}
-.campo-body{padding:1.1rem 1.25rem;}
-.criterio-block{margin-bottom:1.1rem;padding-bottom:1.1rem;border-bottom:1px solid var(--border);}
-.criterio-block:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0;}
-.criterio-label{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;display:flex;align-items:center;gap:6px;}
-.critico-tag{background:var(--accent);color:white;font-size:.58rem;padding:1px 6px;border-radius:10px;}
-.orientacao{font-size:.8rem;color:var(--muted);background:var(--bg);border-left:3px solid var(--border2);padding:.55rem .8rem;border-radius:0 6px 6px 0;margin-bottom:.8rem;line-height:1.55;}
-.orientacao .atencao{color:var(--warn);font-weight:600;}
-.nivel-selector{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;}
-.nivel-btn{border:2px solid var(--border);border-radius:7px;padding:7px 3px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface);user-select:none;}
-.nivel-btn:hover{border-color:var(--border2);background:var(--bg);}
-.nivel-btn .nivel-name{font-size:.62rem;font-weight:600;line-height:1.2;margin-bottom:2px;color:var(--text);}
-.nivel-btn .nivel-pts{font-family:'Playfair Display',serif;font-size:.85rem;color:var(--muted);}
-.nivel-btn[data-nivel="0"].selected{border-color:#888;background:#f0f0f0;}
-.nivel-btn[data-nivel="1"].selected{border-color:#c0392b;background:var(--nivel-1);}
-.nivel-btn[data-nivel="1"].selected .nivel-pts{color:#c0392b;}
-.nivel-btn[data-nivel="2"].selected{border-color:#b07800;background:var(--nivel-2);}
-.nivel-btn[data-nivel="2"].selected .nivel-pts{color:#b07800;}
-.nivel-btn[data-nivel="3"].selected{border-color:#3a5bbf;background:var(--nivel-3);}
-.nivel-btn[data-nivel="3"].selected .nivel-pts{color:#3a5bbf;}
-.nivel-btn[data-nivel="4"].selected{border-color:#2a6b45;background:var(--nivel-4);}
-.nivel-btn[data-nivel="4"].selected .nivel-pts{color:#2a6b45;}
-.nivel-btn[data-nivel="5"].selected{border-color:var(--accent);background:var(--accent);}
-.nivel-btn[data-nivel="5"].selected .nivel-name{color:white;}
-.nivel-btn[data-nivel="5"].selected .nivel-pts{color:rgba(255,255,255,.85);}
-.comment-area{margin-top:.875rem;display:none;}
-.comment-area.visible{display:block;}
-.comment-area label{font-size:.7rem;font-weight:600;color:var(--danger);letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:5px;margin-bottom:.35rem;}
-.comment-area textarea{width:100%;border:1px solid #e0b0b0;border-radius:7px;padding:9px 11px;font-family:inherit;font-size:.85rem;resize:vertical;min-height:72px;outline:none;background:var(--danger-light);color:var(--text);transition:border-color .2s;}
-.comment-area textarea:focus{border-color:var(--danger);}
-.transversal-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:1rem;overflow:hidden;}
-.transversal-header{padding:.875rem 1.25rem;border-bottom:1px solid var(--border);background:#f8f5ee;display:flex;align-items:center;justify-content:space-between;}
-.transversal-header .campo-title{color:var(--accent2);}
-.card-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.25rem;margin-bottom:1rem;}
-.card-section h3{font-weight:600;font-size:.9rem;margin-bottom:.2rem;}
-.card-section>p{font-size:.78rem;color:var(--muted);margin-bottom:.75rem;}
-.card-section textarea{width:100%;border:1px solid var(--border);border-radius:7px;padding:9px 11px;font-family:inherit;font-size:.85rem;resize:vertical;min-height:85px;outline:none;background:var(--bg);color:var(--text);transition:border-color .2s;}
-.card-section textarea:focus{border-color:var(--accent);}
-.ajuste-row{display:flex;gap:1rem;align-items:flex-start;}
-.ajuste-nota{flex-shrink:0;}
-.ajuste-nota label{font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;display:block;margin-bottom:.35rem;}
-.ajuste-nota input{width:85px;border:1px solid var(--border);border-radius:7px;padding:8px 11px;font-family:'Playfair Display',serif;font-size:1.05rem;text-align:center;outline:none;background:var(--bg);color:var(--text);transition:border-color .2s;}
-.ajuste-nota input:focus{border-color:var(--accent);}
-.ajuste-justif{flex:1;}
-.ajuste-justif label{font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;display:block;margin-bottom:.35rem;}
-.actions{display:flex;gap:.875rem;justify-content:flex-end;margin-top:1.25rem;}
-.btn-save{padding:10px 26px;background:var(--accent);color:white;border:none;border-radius:7px;font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;}
-.btn-save:hover{background:#122a1e;transform:translateY(-1px);box-shadow:0 4px 14px rgba(26,58,42,.3);}
-.btn-secondary{padding:10px 18px;background:none;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:.85rem;cursor:pointer;color:var(--muted);transition:all .2s;}
-.btn-secondary:hover{border-color:var(--danger);color:var(--danger);}
-.coord-tabs{display:flex;gap:0;margin-bottom:1.5rem;margin-top:1.5rem;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);}
-.coord-tab{flex:1;padding:.75rem;text-align:center;cursor:pointer;font-size:.85rem;font-weight:500;color:var(--muted);border-right:1px solid var(--border);transition:all .2s;background:var(--surface);}
-.coord-tab:last-child{border-right:none;}
-.coord-tab.active{background:var(--accent);color:white;font-weight:600;}
-.coord-tab:hover:not(.active){background:var(--bg);}
-.coord-panel{display:none;}
-.coord-panel.active{display:block;}
-.upload-zone{border:2px dashed var(--border2);border-radius:10px;padding:2rem;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:1rem;}
-.upload-zone:hover{border-color:var(--accent);background:var(--accent-light);}
-.upload-zone input{display:none;}
-.upload-zone .icon{font-size:2rem;margin-bottom:.5rem;}
-.upload-zone h4{font-weight:600;font-size:.9rem;margin-bottom:.25rem;}
-.upload-zone p{font-size:.775rem;color:var(--muted);}
-.upload-status{font-size:.8rem;padding:.6rem 1rem;border-radius:7px;margin-top:.5rem;display:none;}
-.upload-status.ok{background:var(--ok-light);color:var(--ok);display:block;}
-.upload-status.err{background:var(--danger-light);color:var(--danger);display:block;}
-.table-wrap{overflow-x:auto;margin-bottom:1.25rem;}
-table{width:100%;border-collapse:collapse;font-size:.85rem;}
-th{background:var(--surface2);padding:.6rem .875rem;text-align:left;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);}
-td{padding:.6rem .875rem;border-bottom:1px solid var(--border);}
-tr:last-child td{border-bottom:none;}
-.select-prof{border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-family:inherit;font-size:.8rem;background:var(--bg);color:var(--text);outline:none;width:100%;}
-.select-prof:focus{border-color:var(--accent);}
-.results-grid{display:grid;gap:.75rem;}
-.result-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;}
-.result-card h4{font-weight:600;font-size:.9rem;margin-bottom:.4rem;}
-.result-scores{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem;}
-.result-score{font-size:.8rem;}
-.result-score .rs-label{color:var(--muted);}
-.result-score .rs-val{font-family:'Playfair Display',serif;font-size:1rem;color:var(--accent);font-weight:600;}
-.result-score .rs-val.low{color:var(--danger);}
-.result-avg{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--accent);font-weight:600;}
-.result-avg.low{color:var(--danger);}
-.toast{position:fixed;bottom:2rem;right:2rem;background:var(--accent);color:white;padding:11px 18px;border-radius:9px;font-size:.85rem;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.2);transform:translateY(80px);opacity:0;transition:all .3s;z-index:200;}
-.toast.show{transform:translateY(0);opacity:1;}
-.loading{text-align:center;padding:3rem;color:var(--muted);font-size:.875rem;}
-@media(max-width:600px){.nivel-selector{grid-template-columns:repeat(3,1fr)};.ajuste-row{flex-direction:column};.coord-tabs{flex-direction:column}}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Source Sans 3',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:15px; line-height:1.6; }
+
+/* HEADER */
+header { background:var(--accent); color:white; padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:50; box-shadow:0 2px 16px rgba(0,0,0,0.2); }
+header h1 { font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:600; }
+header p { font-size:0.75rem; opacity:0.7; margin-top:1px; }
+.score-pill { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); border-radius:24px; padding:5px 14px; text-align:center; display:none; }
+.score-pill .val { font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:600; line-height:1; }
+.score-pill .lbl { font-size:0.6rem; opacity:0.7; letter-spacing:0.08em; text-transform:uppercase; }
+.header-right { display:flex; align-items:center; gap:1rem; }
+.btn-logout { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); border-radius:6px; padding:5px 12px; color:white; font-family:inherit; font-size:0.775rem; cursor:pointer; display:none; transition:background 0.2s; }
+.btn-logout:hover { background:rgba(255,255,255,0.25); }
+
+/* CONTAINER */
+.container { max-width:880px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+
+/* SCREENS */
+.screen { display:none; }
+#loginScreen.active { align-items:center; justify-content:center; min-height:calc(100vh - 64px); }
+
+/* LOGIN */
+.login-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2.5rem; width:100%; max-width:400px; box-shadow:0 8px 32px rgba(0,0,0,0.08); }
+.login-card h2 { font-family:'Playfair Display',serif; font-size:1.5rem; margin-bottom:0.25rem; }
+.login-card > p { color:var(--muted); font-size:0.875rem; margin-bottom:1.75rem; }
+.form-group { margin-bottom:1.1rem; }
+.form-group label { display:block; font-size:0.75rem; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); margin-bottom:0.4rem; }
+.form-group input, .form-group select { width:100%; border:1px solid var(--border); border-radius:8px; padding:9px 13px; font-family:inherit; font-size:0.9rem; background:var(--bg); color:var(--text); outline:none; transition:border-color 0.2s; }
+.form-group input:focus, .form-group select:focus { border-color:var(--accent); }
+.btn-primary { width:100%; padding:11px; background:var(--accent); color:white; border:none; border-radius:8px; font-family:inherit; font-size:0.9rem; font-weight:600; cursor:pointer; transition:all 0.2s; }
+.btn-primary:hover { background:#122a1e; transform:translateY(-1px); box-shadow:0 4px 14px rgba(26,58,42,0.3); }
+.login-error { color:var(--danger); font-size:0.8rem; margin-top:0.6rem; display:none; }
+.hint-box { margin-top:1.1rem; padding:0.75rem; background:var(--bg); border-radius:8px; font-size:0.75rem; color:var(--muted); line-height:1.7; }
+.hint-box strong { color:var(--text); display:block; margin-bottom:3px; }
+
+/* SECTION TITLE */
+.section-title { font-family:'Playfair Display',serif; font-size:1.25rem; margin-bottom:0.2rem; padding-top:1.5rem; }
+.section-sub { color:var(--muted); font-size:0.85rem; margin-bottom:1.5rem; }
+
+/* WORK LIST */
+.work-cards { display:grid; gap:0.875rem; }
+.work-card { background:var(--surface); border:1px solid var(--border); border-left:4px solid transparent; border-radius:10px; padding:1.1rem 1.4rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; transition:all 0.2s; }
+.work-card:hover { border-color:var(--accent); border-left-color:var(--accent); box-shadow:0 3px 14px rgba(0,0,0,0.06); }
+.work-card.done { border-left-color:var(--accent2); }
+.work-card-info h3 { font-weight:600; font-size:0.9rem; margin-bottom:2px; }
+.work-card-info p { font-size:0.775rem; color:var(--muted); }
+.badge { font-size:0.72rem; font-weight:600; padding:3px 11px; border-radius:20px; flex-shrink:0; }
+.badge-pending { background:var(--warn-light); color:var(--warn); }
+.badge-done { background:var(--ok-light); color:var(--ok); }
+
+/* EVAL HEADER */
+.eval-header { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem 1.4rem; margin-bottom:1.25rem; margin-top:1.5rem; display:flex; align-items:center; justify-content:space-between; }
+.eval-header h2 { font-family:'Playfair Display',serif; font-size:1.1rem; }
+.eval-header p { font-size:0.775rem; color:var(--muted); margin-top:2px; }
+.btn-back { background:none; border:1px solid var(--border); border-radius:7px; padding:6px 13px; font-family:inherit; font-size:0.8rem; cursor:pointer; color:var(--muted); transition:all 0.2s; }
+.btn-back:hover { border-color:var(--accent); color:var(--accent); }
+
+/* PDF */
+.pdf-section { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:1.25rem; overflow:hidden; }
+.pdf-header { padding:0.75rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--surface2); }
+.pdf-header span { font-size:0.75rem; font-weight:600; color:var(--muted); letter-spacing:0.07em; text-transform:uppercase; }
+.pdf-toggle { background:none; border:1px solid var(--border); border-radius:6px; padding:3px 11px; font-family:inherit; font-size:0.75rem; cursor:pointer; color:var(--muted); transition:all 0.2s; }
+.pdf-toggle:hover { border-color:var(--accent); color:var(--accent); }
+.pdf-frame { width:100%; height:480px; border:none; display:block; }
+.pdf-frame.collapsed { display:none; }
+
+/* SCORE SUMMARY */
+.score-summary { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem; margin-bottom:1.25rem; display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:0.6rem; }
+.score-item { text-align:center; padding:0.6rem; border-radius:7px; background:var(--bg); border:1px solid var(--border); }
+.score-item .s-label { font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px; line-height:1.3; }
+.score-item .s-val { font-family:'Playfair Display',serif; font-size:1.2rem; color:var(--accent); }
+.score-item.total { background:var(--accent); border-color:var(--accent); }
+.score-item.total .s-label { color:rgba(255,255,255,0.7); }
+.score-item.total .s-val { color:white; font-size:1.5rem; }
+
+/* CAMPO */
+.campo-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:1rem; overflow:hidden; }
+.campo-header { padding:0.875rem 1.25rem; border-bottom:1px solid var(--border); background:var(--surface2); display:flex; align-items:center; justify-content:space-between; }
+.campo-num { font-family:'Playfair Display',serif; font-size:0.775rem; color:var(--muted); margin-right:7px; }
+.campo-title { font-weight:600; font-size:0.9rem; }
+.campo-score-badge { font-size:0.775rem; font-weight:700; padding:2px 11px; border-radius:20px; background:var(--bg); border:1px solid var(--border); color:var(--muted); transition:all 0.3s; }
+.campo-score-badge.scored { background:var(--accent-light); border-color:var(--accent); color:var(--accent); }
+.campo-score-badge.low { background:var(--danger-light); border-color:var(--danger); color:var(--danger); }
+.campo-body { padding:1.1rem 1.25rem; }
+
+/* CRITERIO */
+.criterio-block { margin-bottom:1.1rem; padding-bottom:1.1rem; border-bottom:1px solid var(--border); }
+.criterio-block:last-of-type { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+.criterio-label { font-size:0.68rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-bottom:0.4rem; display:flex; align-items:center; gap:6px; }
+.critico-tag { background:var(--accent); color:white; font-size:0.58rem; padding:1px 6px; border-radius:10px; }
+.orientacao { font-size:0.8rem; color:var(--muted); background:var(--bg); border-left:3px solid var(--border2); padding:0.55rem 0.8rem; border-radius:0 6px 6px 0; margin-bottom:0.8rem; line-height:1.55; }
+.orientacao .atencao { color:var(--warn); font-weight:600; }
+
+/* NIVEL */
+.nivel-selector { display:grid; grid-template-columns:repeat(6,1fr); gap:5px; }
+.nivel-btn { border:2px solid var(--border); border-radius:7px; padding:7px 3px; text-align:center; cursor:pointer; transition:all 0.15s; background:var(--surface); user-select:none; }
+.nivel-btn:hover { border-color:var(--border2); background:var(--bg); }
+.nivel-btn .nivel-name { font-size:0.62rem; font-weight:600; line-height:1.2; margin-bottom:2px; color:var(--text); }
+.nivel-btn .nivel-pts { font-family:'Playfair Display',serif; font-size:0.85rem; color:var(--muted); }
+.nivel-btn[data-nivel="0"].selected { border-color:#888; background:#f0f0f0; }
+.nivel-btn[data-nivel="1"].selected { border-color:#c0392b; background:var(--nivel-1); }
+.nivel-btn[data-nivel="1"].selected .nivel-pts { color:#c0392b; }
+.nivel-btn[data-nivel="2"].selected { border-color:#b07800; background:var(--nivel-2); }
+.nivel-btn[data-nivel="2"].selected .nivel-pts { color:#b07800; }
+.nivel-btn[data-nivel="3"].selected { border-color:#3a5bbf; background:var(--nivel-3); }
+.nivel-btn[data-nivel="3"].selected .nivel-pts { color:#3a5bbf; }
+.nivel-btn[data-nivel="4"].selected { border-color:#2a6b45; background:var(--nivel-4); }
+.nivel-btn[data-nivel="4"].selected .nivel-pts { color:#2a6b45; }
+.nivel-btn[data-nivel="5"].selected { border-color:var(--accent); background:var(--accent); }
+.nivel-btn[data-nivel="5"].selected .nivel-name { color:white; }
+.nivel-btn[data-nivel="5"].selected .nivel-pts { color:rgba(255,255,255,0.85); }
+
+/* COMMENT */
+.comment-area { margin-top:0.875rem; display:none; }
+.comment-area.visible { display:block; }
+.comment-area label { font-size:0.7rem; font-weight:600; color:var(--danger); letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:5px; margin-bottom:0.35rem; }
+.comment-area textarea { width:100%; border:1px solid #e0b0b0; border-radius:7px; padding:9px 11px; font-family:inherit; font-size:0.85rem; resize:vertical; min-height:72px; outline:none; background:var(--danger-light); color:var(--text); transition:border-color 0.2s; }
+.comment-area textarea:focus { border-color:var(--danger); }
+
+/* TRANSVERSAL */
+.transversal-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:1rem; overflow:hidden; }
+.transversal-header { padding:0.875rem 1.25rem; border-bottom:1px solid var(--border); background:#f8f5ee; display:flex; align-items:center; justify-content:space-between; }
+.transversal-header .campo-title { color:var(--accent2); }
+
+/* GENERAL / AJUSTE */
+.card-section { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.1rem 1.25rem; margin-bottom:1rem; }
+.card-section h3 { font-weight:600; font-size:0.9rem; margin-bottom:0.2rem; }
+.card-section > p { font-size:0.78rem; color:var(--muted); margin-bottom:0.75rem; }
+.card-section textarea { width:100%; border:1px solid var(--border); border-radius:7px; padding:9px 11px; font-family:inherit; font-size:0.85rem; resize:vertical; min-height:85px; outline:none; background:var(--bg); color:var(--text); transition:border-color 0.2s; }
+.card-section textarea:focus { border-color:var(--accent); }
+.ajuste-row { display:flex; gap:1rem; align-items:flex-start; }
+.ajuste-nota { flex-shrink:0; }
+.ajuste-nota label { font-size:0.72rem; font-weight:600; color:var(--muted); letter-spacing:0.07em; text-transform:uppercase; display:block; margin-bottom:0.35rem; }
+.ajuste-nota input { width:85px; border:1px solid var(--border); border-radius:7px; padding:8px 11px; font-family:'Playfair Display',serif; font-size:1.05rem; text-align:center; outline:none; background:var(--bg); color:var(--text); transition:border-color 0.2s; }
+.ajuste-nota input:focus { border-color:var(--accent); }
+.ajuste-justif { flex:1; }
+.ajuste-justif label { font-size:0.72rem; font-weight:600; color:var(--muted); letter-spacing:0.07em; text-transform:uppercase; display:block; margin-bottom:0.35rem; }
+.ajuste-justif textarea { min-height:65px; }
+
+/* ACTIONS */
+.actions { display:flex; gap:0.875rem; justify-content:flex-end; margin-top:1.25rem; }
+.btn-save { padding:10px 26px; background:var(--accent); color:white; border:none; border-radius:7px; font-family:inherit; font-size:0.9rem; font-weight:600; cursor:pointer; transition:all 0.2s; }
+.btn-save:hover { background:#122a1e; transform:translateY(-1px); box-shadow:0 4px 14px rgba(26,58,42,0.3); }
+.btn-secondary { padding:10px 18px; background:none; border:1px solid var(--border); border-radius:7px; font-family:inherit; font-size:0.85rem; cursor:pointer; color:var(--muted); transition:all 0.2s; }
+.btn-secondary:hover { border-color:var(--danger); color:var(--danger); }
+
+/* COORDENADOR */
+.coord-tabs { display:flex; gap:0; margin-bottom:1.5rem; margin-top:1.5rem; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
+.coord-tab { flex:1; padding:0.75rem; text-align:center; cursor:pointer; font-size:0.85rem; font-weight:500; color:var(--muted); border-right:1px solid var(--border); transition:all 0.2s; background:var(--surface); }
+.coord-tab:last-child { border-right:none; }
+.coord-tab.active { background:var(--accent); color:white; font-weight:600; }
+.coord-tab:hover:not(.active) { background:var(--bg); }
+.coord-panel { display:none; }
+.coord-panel.active { display:block; }
+
+.upload-zone { border:2px dashed var(--border2); border-radius:10px; padding:2rem; text-align:center; cursor:pointer; transition:all 0.2s; margin-bottom:1rem; }
+.upload-zone:hover { border-color:var(--accent); background:var(--accent-light); }
+.upload-zone input { display:none; }
+.upload-zone .icon { font-size:2rem; margin-bottom:0.5rem; }
+.upload-zone h4 { font-weight:600; font-size:0.9rem; margin-bottom:0.25rem; }
+.upload-zone p { font-size:0.775rem; color:var(--muted); }
+.upload-status { font-size:0.8rem; padding:0.6rem 1rem; border-radius:7px; margin-top:0.5rem; display:none; }
+.upload-status.ok { background:var(--ok-light); color:var(--ok); display:block; }
+.upload-status.err { background:var(--danger-light); color:var(--danger); display:block; }
+
+.table-wrap { overflow-x:auto; margin-bottom:1.25rem; }
+table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+th { background:var(--surface2); padding:0.6rem 0.875rem; text-align:left; font-size:0.7rem; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted); border-bottom:2px solid var(--border); }
+td { padding:0.6rem 0.875rem; border-bottom:1px solid var(--border); }
+tr:last-child td { border-bottom:none; }
+.select-prof { border:1px solid var(--border); border-radius:5px; padding:4px 8px; font-family:inherit; font-size:0.8rem; background:var(--bg); color:var(--text); outline:none; width:100%; }
+.select-prof:focus { border-color:var(--accent); }
+
+.results-grid { display:grid; gap:0.75rem; }
+.result-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem 1.25rem; }
+.result-card h4 { font-weight:600; font-size:0.9rem; margin-bottom:0.4rem; }
+.result-card .result-scores { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.5rem; }
+.result-score { font-size:0.8rem; }
+.result-score .rs-label { color:var(--muted); }
+.result-score .rs-val { font-family:'Playfair Display',serif; font-size:1rem; color:var(--accent); font-weight:600; }
+.result-score .rs-val.low { color:var(--danger); }
+.result-avg { font-family:'Playfair Display',serif; font-size:1.5rem; color:var(--accent); font-weight:600; }
+.result-avg.low { color:var(--danger); }
+
+/* TOAST */
+.toast { position:fixed; bottom:2rem; right:2rem; background:var(--accent); color:white; padding:11px 18px; border-radius:9px; font-size:0.85rem; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,0.2); transform:translateY(80px); opacity:0; transition:all 0.3s; z-index:200; }
+.toast.show { transform:translateY(0); opacity:1; }
+
+/* LOADING */
+.loading { text-align:center; padding:3rem; color:var(--muted); font-size:0.875rem; }
+
+@media(max-width:600px) {
+  .nivel-selector { grid-template-columns:repeat(3,1fr); }
+  .ajuste-row { flex-direction:column; }
+  .coord-tabs { flex-direction:column; }
+  .coord-tab { border-right:none; border-bottom:1px solid var(--border); }
+}
 </style>
 </head>
 <body>
@@ -181,8 +281,8 @@ tr:last-child td{border-bottom:none;}
 
 <div class="container">
 
-  <!-- LOGIN -->
-  <div id="loginScreen" class="screen">
+  <!-- ══ LOGIN ══ -->
+  <div class="screen active" id="loginScreen">
     <div class="login-card">
       <h2>Acesso ao Sistema</h2>
       <p>Entre com seu usuário e senha fornecidos pelo coordenador.</p>
@@ -196,24 +296,30 @@ tr:last-child td{border-bottom:none;}
         <input type="password" id="loginPass" placeholder="Senha recebida por e-mail"
           onkeydown="if(event.key==='Enter')doLogin()">
       </div>
-      <button class="btn-primary" id="btnEntrar" onclick="doLogin()">Entrar</button>
+      <button class="btn-primary" onclick="doLogin()">Entrar</button>
       <div class="login-error" id="loginError">Usuário ou senha inválidos.</div>
     </div>
   </div>
 
-  <!-- LISTA DE TRABALHOS -->
-  <div id="workListScreen" class="screen">
+  <!-- ══ LISTA DE TRABALHOS ══ -->
+  <div class="screen" id="workListScreen">
     <h2 class="section-title" id="profName">Bem-vindo</h2>
     <p class="section-sub" id="profSub">Selecione um trabalho para avaliar.</p>
-    <div class="work-cards" id="workCards"><div class="loading">Carregando...</div></div>
+    <div class="work-cards" id="workCards">
+      <div class="loading">Carregando trabalhos...</div>
+    </div>
   </div>
 
-  <!-- AVALIAÇÃO -->
-  <div id="evalScreen" class="screen">
+  <!-- ══ AVALIAÇÃO ══ -->
+  <div class="screen" id="evalScreen">
     <div class="eval-header">
-      <div><h2 id="workTitle">—</h2><p id="workCode">—</p></div>
+      <div>
+        <h2 id="workTitle">—</h2>
+        <p id="workCode">—</p>
+      </div>
       <button class="btn-back" onclick="goBack()">← Voltar</button>
     </div>
+
     <div class="pdf-section">
       <div class="pdf-header">
         <span>📄 Trabalho</span>
@@ -221,44 +327,53 @@ tr:last-child td{border-bottom:none;}
       </div>
       <iframe class="pdf-frame" id="pdfFrame" src=""></iframe>
     </div>
+
     <div class="score-summary" id="scoreSummary"></div>
     <div id="camposContainer"></div>
+
+    <!-- Transversal -->
     <div class="transversal-card">
       <div class="transversal-header">
-        <div><span class="campo-num">Transversal</span><span class="campo-title">Organização Geral</span></div>
+        <div>
+          <span class="campo-num">Transversal</span>
+          <span class="campo-title">Organização Geral do Documento</span>
+        </div>
         <span class="campo-score-badge" id="badge-transversal">—</span>
       </div>
       <div class="campo-body">
         <div class="criterio-block">
           <div class="criterio-label">Organização</div>
-          <div class="orientacao">O documento respeita os limites de palavras? A linguagem é acadêmica? Cada campo cumpre sua função sem repetir conteúdo de outros? A formatação é consistente?</div>
+          <div class="orientacao">O documento respeita os limites de palavras de cada campo? A linguagem é acadêmica e adequada? Cada campo cumpre sua função sem repetir conteúdo de outros? A formatação é consistente ao longo do documento?</div>
           <div class="nivel-selector" data-campo="transversal" data-criterio="org"></div>
           <div class="comment-area" id="ca-transversal-org">
             <label>⚠ Comentário obrigatório — nota abaixo de 7</label>
-            <textarea data-campo="transversal" data-criterio="org" placeholder="Indique os problemas de organização..."></textarea>
+            <textarea data-campo="transversal" data-criterio="org" placeholder="Indique os problemas de organização identificados..."></textarea>
           </div>
         </div>
       </div>
     </div>
+
     <div class="card-section">
       <h3>Comentário Geral</h3>
-      <p>Síntese da avaliação — pontos fortes, fragilidades e recomendações.</p>
-      <textarea id="generalComment" placeholder="Escreva seu comentário geral..."></textarea>
+      <p>Síntese da avaliação — pontos fortes, fragilidades e recomendações ao aluno.</p>
+      <textarea id="generalComment" placeholder="Escreva aqui seu comentário geral sobre o trabalho..."></textarea>
     </div>
+
     <div class="card-section">
       <h3>Ajuste de Nota</h3>
-      <p>Se algum aspecto não foi capturado pela rubrica, ajuste a nota e justifique.</p>
+      <p>Se algum aspecto relevante não foi capturado pela rubrica, ajuste a nota final e justifique.</p>
       <div class="ajuste-row">
         <div class="ajuste-nota">
           <label>Nota final</label>
           <input type="number" id="ajusteNota" min="0" max="10" step="0.1" placeholder="—" oninput="updateScore()">
         </div>
         <div class="ajuste-justif">
-          <label>Justificativa</label>
-          <textarea id="ajusteJustif" placeholder="Explique o motivo do ajuste..." style="min-height:65px"></textarea>
+          <label>Justificativa do ajuste</label>
+          <textarea id="ajusteJustif" placeholder="Explique o motivo do ajuste..." class="ajuste-justif"></textarea>
         </div>
       </div>
     </div>
+
     <div class="actions">
       <button class="btn-secondary" onclick="clearEval()">🗑 Limpar</button>
       <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent)" onclick="goBack()">← Voltar sem salvar</button>
@@ -266,149 +381,126 @@ tr:last-child td{border-bottom:none;}
     </div>
   </div>
 
-  <!-- COORDENADOR -->
-  <div id="coordScreen" class="screen">
+  <!-- ══ COORDENADOR ══ -->
+  <div class="screen" id="coordScreen">
     <h2 class="section-title">Painel do Coordenador</h2>
-    <p class="section-sub">Gerencie uploads, atribuições e resultados.</p>
+    <p class="section-sub">Gerencie uploads, atribuições e consulte resultados.</p>
+
     <div class="coord-tabs">
       <div class="coord-tab active" onclick="switchTab('uploads')">📁 Uploads</div>
       <div class="coord-tab" onclick="switchTab('atribuicoes')">👥 Atribuições</div>
       <div class="coord-tab" onclick="switchTab('resultados')">📊 Resultados</div>
     </div>
+
+    <!-- TAB UPLOADS -->
     <div class="coord-panel active" id="tab-uploads">
       <div class="card-section">
-        <h3>1. Lista de Alunos</h3>
-        <p>CSV com colunas: <code>nome,email,turma</code></p>
+        <h3 style="display:flex;align-items:center;justify-content:space-between">
+          1. Lista de Alunos
+          <button class="btn-secondary" style="font-size:0.75rem;padding:5px 12px;color:var(--danger);border-color:var(--danger)" onclick="novoSemestre()">
+            🗑 Limpar dados do semestre
+          </button>
+        </h3>
+        <p>CSV com colunas: <code>nome,email</code></p>
         <div class="upload-zone" onclick="document.getElementById('uploadAlunos').click()">
           <input type="file" id="uploadAlunos" accept=".csv" onchange="handleAlunosCSV(this)">
           <div class="icon">👥</div>
-          <h4>Selecionar CSV de alunos</h4>
-          <p>nome,email,turma — um aluno por linha</p>
+          <h4>Clique para selecionar o CSV de alunos</h4>
+          <p>nome,email — um aluno por linha</p>
         </div>
         <div class="upload-status" id="statusAlunos"></div>
       </div>
+
       <div class="card-section">
         <h3>2. Trabalhos — ZIP do Moodle</h3>
-        <p>Selecione a turma antes de subir o ZIP.</p>
-        <div class="form-group" style="margin-bottom:.75rem">
-          <label>Turma do ZIP</label>
-          <select id="zipTurma" style="max-width:220px">
-            <option value="Matutino">Matutino</option>
-            <option value="Noturno">Noturno</option>
-          </select>
-        </div>
-        <div class="form-group" style="margin-bottom:.75rem">
-          <label>Turma do ZIP</label>
-          <select id="zipTurma" style="max-width:220px">
-            <option value="Matutino">Matutino</option>
-            <option value="Noturno">Noturno</option>
-          </select>
-        </div>
+        <p>O sistema extrai os nomes das pastas e cruza com a lista de alunos.</p>
         <div class="upload-zone" onclick="document.getElementById('uploadZip').click()">
           <input type="file" id="uploadZip" accept=".zip" onchange="handleZip(this)">
           <div class="icon">📦</div>
-          <h4>Selecionar ZIP do Moodle</h4>
-          <p>NomeAluno_ID_assignsubmission_file/arquivo.pdf</p>
+          <h4>Clique para selecionar o ZIP do Moodle</h4>
+          <p>Estrutura: NomeAluno_ID_assignsubmission_file/arquivo.pdf</p>
         </div>
         <div class="upload-status" id="statusZip"></div>
       </div>
+
       <div class="card-section">
-        <h3>3. Lista de Professores</h3>
-        <p>CSV com colunas: <code>nome,email</code> — senha gerada automaticamente.</p>
+        <h3>3. Lista de Professores Avaliadores</h3>
+        <p>CSV com apenas duas colunas: <code>nome,email</code> — a senha é gerada automaticamente pelo sistema.</p>
         <div class="upload-zone" onclick="document.getElementById('uploadProfs').click()">
           <input type="file" id="uploadProfs" accept=".csv" onchange="handleProfsCSV(this)">
           <div class="icon">🎓</div>
-          <h4>Selecionar CSV de professores</h4>
-          <p>nome,email — senha gerada automaticamente</p>
+          <h4>Clique para selecionar o CSV de professores</h4>
+          <p>nome,email — um professor por linha · senha gerada automaticamente</p>
         </div>
         <div class="upload-status" id="statusProfs"></div>
         <div id="profsGeradosWrap" style="display:none;margin-top:1rem">
-          <div style="font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem">Credenciais Geradas</div>
+          <div style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.5rem">Credenciais Geradas</div>
           <div id="profsGeradosTable"></div>
-          <button class="btn-save" style="margin-top:.875rem;width:100%" onclick="enviarCredenciaisProfessores()">📧 Enviar Credenciais por E-mail</button>
+          <button class="btn-save" style="margin-top:0.875rem;width:100%" onclick="enviarCredenciaisProfessores()">
+            📧 Enviar Credenciais por E-mail
+          </button>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;text-align:center">
+            Requer configuração do EmailJS — veja o Guia de Configuração
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- TAB ATRIBUIÇÕES -->
     <div class="coord-panel" id="tab-atribuicoes">
       <div class="card-section">
-        <h3>Atribuição de Trabalhos</h3>
-        <p>Cada trabalho deve ter exatamente 2 avaliadores.</p>
-        <div style="display:flex;gap:.75rem;align-items:center;margin-bottom:.75rem">
-          <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Turma:</label>
-          <select id="filtroAtribTurma" style="border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-family:inherit;font-size:.85rem;background:var(--bg);color:var(--text);outline:none" onchange="loadAtribTable()">
-            <option value="Todas">Todas</option>
-            <option value="Matutino">Matutino</option>
-            <option value="Noturno">Noturno</option>
-          </select>
-        </div>
+        <h3>Atribuição de Trabalhos aos Avaliadores</h3>
+        <p>Cada trabalho deve ter exatamente 2 avaliadores. Selecione os professores para cada aluno.</p>
         <div class="table-wrap">
-          <table><thead><tr><th>Aluno</th><th>Turma</th><th>Código</th><th>Avaliador 1</th><th>Avaliador 2</th></tr></thead>
-          <tbody id="atribBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">Faça o upload dos dados primeiro.</td></tr></tbody></table>
+          <table id="atribTable">
+            <thead>
+              <tr>
+                <th>Aluno</th>
+                <th>Código</th>
+                <th>Avaliador 1</th>
+                <th>Avaliador 2</th>
+              </tr>
+            </thead>
+            <tbody id="atribBody">
+              <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem">
+                Faça o upload dos dados na aba Uploads primeiro.
+              </td></tr>
+            </tbody>
+          </table>
         </div>
-        <div class="actions"><button class="btn-save" onclick="salvarAtribuicoes()">💾 Salvar Atribuições</button></div>
+        <div class="actions">
+          <button class="btn-save" onclick="salvarAtribuicoes()">💾 Salvar Atribuições</button>
+        </div>
       </div>
     </div>
+
+    <!-- TAB RESULTADOS -->
     <div class="coord-panel" id="tab-resultados">
       <div class="card-section" style="margin-bottom:1rem">
         <h3>Resultados Consolidados</h3>
         <p>Médias calculadas automaticamente quando ambos os avaliadores finalizaram.</p>
-        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-top:.75rem">
-          <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Turma:</label>
-          <select id="filtroResultTurma" style="border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-family:inherit;font-size:.85rem;background:var(--bg);color:var(--text);outline:none">
-            <option value="Todas">Todas</option>
-            <option value="Matutino">Matutino</option>
-            <option value="Noturno">Noturno</option>
-          </select>
-          <button class="btn-primary" style="width:auto;padding:8px 18px" onclick="loadResultados()">🔄 Atualizar</button>
-          <button class="btn-save" style="padding:8px 18px" onclick="liberarResultados()">📧 Liberar e Enviar</button>
-          <button class="btn-secondary" style="padding:8px 18px;color:var(--accent);border-color:var(--accent)" onclick="exportarNotas()">⬇️ Exportar CSV</button>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.75rem">
+          <button class="btn-primary" style="width:auto;padding:9px 20px" onclick="loadResultados()">🔄 Atualizar</button>
+          <button class="btn-save" style="padding:9px 20px" onclick="liberarResultados()">
+            📧 Liberar e Enviar Resultados aos Alunos
+          </button>
+          <button class="btn-secondary" style="padding:9px 20px;color:var(--accent);border-color:var(--accent)" onclick="exportarNotas()">
+            ⬇️ Exportar Notas CSV
+          </button>
         </div>
-        <div id="liberarStatus" style="display:none;margin-top:.75rem;font-size:.8rem;padding:.6rem 1rem;border-radius:7px"></div>
+        <div id="liberarStatus" style="display:none;margin-top:0.75rem;font-size:0.8rem;padding:0.6rem 1rem;border-radius:7px"></div>
       </div>
-      <div class="results-grid" id="resultsGrid"><div class="loading">Clique em Atualizar para carregar.</div></div>
+      <div class="results-grid" id="resultsGrid">
+        <div class="loading">Clique em Atualizar para carregar os resultados.</div>
+      </div>
     </div>
   </div>
 
-</div>
+</div><!-- /container -->
 
 <div class="toast" id="toast"></div>
 
-<script type="module">
-
-// ══ FIREBASE ══
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, update }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCB2E4YT7y8dNq9ZviFl8vDMICHaewejsk",
-  authDomain: "tfg-avaliacoes.firebaseapp.com",
-  databaseURL: "https://tfg-avaliacoes-default-rtdb.firebaseio.com",
-  projectId: "tfg-avaliacoes",
-  storageBucket: "tfg-avaliacoes.firebasestorage.app",
-  messagingSenderId: "915602242653",
-  appId: "1:915602242653:web:8218ab450d646a4a2421b4",
-  measurementId: "G-Q4EF8NRLTX"
-};
-
-const app = initializeApp(firebaseConfig);
-const db  = getDatabase(app);
-
-async function dbRead(path) {
-  try {
-    const snap = await get(ref(db, path));
-    return snap.exists() ? snap.val() : null;
-  } catch(e) { return null; }
-}
-async function dbWrite(path, data) {
-  try { await set(ref(db, path), data); return true; }
-  catch(e) { return false; }
-}
-async function dbMerge(path, data) {
-  try { await update(ref(db, path), data); return true; }
-  catch(e) { return false; }
-}
-
+<script>
 // ══════════════════════════════════════════════════════
 // ESTRUTURA DE AVALIAÇÃO
 // ══════════════════════════════════════════════════════
@@ -489,32 +581,34 @@ let dbAlunos = {};
 let dbTrabalhos = {};
 let dbProfessores = {};
 let dbAtribuicoes = {};
-let turmaAtual = "1"; // turma selecionada no upload
-
-function selecionarTurma(n) {
-  turmaAtual = String(n);
-  document.querySelectorAll(".btn-turma[id^='btn-turma']").forEach(b => b.classList.remove("active"));
-  document.getElementById(`btn-turma${n}`).classList.add("active");
-  document.getElementById("turmaAtualLabel").textContent =
-    n === 1 ? "Turma 1 — Matutino" : "Turma 2 — Noturno";
-  // Limpar status de uploads ao trocar turma
-  ["statusAlunos","statusZip"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.className = "upload-status"; el.textContent = ""; }
-  });
-}
-
-function filtrarAtrib(turma) {
-  document.querySelectorAll(".btn-turma[id^='filtro']").forEach(b => b.classList.remove("active"));
-  document.getElementById(`filtro-${turma === "todas" ? "todas" : "turma"+turma}`).classList.add("active");
-  document.querySelectorAll("#atribBody tr[data-turma]").forEach(tr => {
-    tr.style.display = (turma === "todas" || tr.dataset.turma === turma) ? "" : "none";
-  });
-}
 
 // ══════════════════════════════════════════════════════
 // FIREBASE HELPERS
 // ══════════════════════════════════════════════════════
+async function dbRead(path) {
+  if (!window._firebaseReady) return null;
+  try {
+    const snap = await window._dbGet(window._dbRef(window._db, path));
+    return snap.exists() ? snap.val() : null;
+  } catch(e) { console.error("dbRead", path, e); return null; }
+}
+
+async function dbWrite(path, data) {
+  if (!window._firebaseReady) return false;
+  try {
+    await window._dbSet(window._dbRef(window._db, path), data);
+    return true;
+  } catch(e) { console.error("dbWrite", path, e); return false; }
+}
+
+async function dbMerge(path, data) {
+  if (!window._firebaseReady) return false;
+  try {
+    await window._dbUpdate(window._dbRef(window._db, path), data);
+    return true;
+  } catch(e) { console.error("dbMerge", path, e); return false; }
+}
+
 // ══════════════════════════════════════════════════════
 // LOGIN / LOGOUT
 // ══════════════════════════════════════════════════════
@@ -523,32 +617,21 @@ async function doLogin() {
   const pass = document.getElementById("loginPass").value.trim();
   document.getElementById("loginError").style.display = "none";
 
-  const btnEntrar = document.querySelector("#loginScreen .btn-primary");
-  if (btnEntrar) { btnEntrar.textContent = "Entrando..."; btnEntrar.disabled = true; }
-
-  try {
-    // Timeout de 5 segundos para o Firebase
-    const profsPromise = dbRead("professores");
-    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 5000));
-    const profs = await Promise.race([profsPromise, timeoutPromise]);
-
-    if (!profs) {
-      demoLogin(user, pass);
-    } else {
-      dbProfessores = profs;
-      const prof = profs[user];
-      if (prof && prof.senha === pass) {
-        currentUser = { id: user, ...prof };
-        afterLogin();
-      } else {
-        document.getElementById("loginError").style.display = "block";
-      }
-    }
-  } catch(e) {
-    // Fallback para demo se Firebase falhar
+  // Buscar professores do Firebase
+  const profs = await dbRead("professores");
+  if (!profs) {
+    // Modo demo — sem Firebase configurado
     demoLogin(user, pass);
-  } finally {
-    if (btnEntrar) { btnEntrar.textContent = "Entrar"; btnEntrar.disabled = false; }
+    return;
+  }
+
+  dbProfessores = profs;
+  const prof = profs[user];
+  if (prof && prof.senha === pass) {
+    currentUser = { id: user, ...prof };
+    afterLogin();
+  } else {
+    document.getElementById("loginError").style.display = "block";
   }
 }
 
@@ -1005,66 +1088,35 @@ function handleAlunosCSV(input) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = async e => {
-    const lines = e.target.result.trim().split("
-").filter(l=>l.trim());
+    const lines = e.target.result.trim().split("\n").filter(l=>l.trim());
     const alunos = {};
-    let count = 0, matutino = 0, noturno = 0;
+    let count = 0;
     lines.forEach((line, i) => {
-      if (i===0 && line.toLowerCase().includes("nome")) return;
+      if (i===0 && line.toLowerCase().includes("nome")) return; // header
       const parts = line.split(",").map(s=>s.trim());
       if (parts.length < 2) return;
       const id = "A" + String(i).padStart(3,"0");
       const turma = parts[2] || "Não informada";
-      alunos[id] = { nome:parts[0], email:parts[1], turma, codigo:"TFG-"+String(i).padStart(3,"0") };
-      if (turma.toLowerCase().includes("matutino")) matutino++;
-      else if (turma.toLowerCase().includes("noturno")) noturno++;
+      alunos[id] = { nome: parts[0], email: parts[1], turma, codigo: "TFG-" + String(i).padStart(3,"0") };
       count++;
     });
     dbAlunos = alunos;
     const ok = await dbWrite("alunos", alunos);
     const st = document.getElementById("statusAlunos");
     st.className = "upload-status ok";
-    st.textContent = `✓ ${count} aluno(s) · Matutino: ${matutino} · Noturno: ${noturno}${ok?" · Firebase ok":" · Firebase não configurado"}`;
+    st.textContent = `✓ ${count} aluno(s) carregado(s)${ok ? " e salvo(s) no Firebase" : " (Firebase não configurado)"}`;
   };
   reader.readAsText(file);
 }
 
-
 function handleZip(input) {
+  // Em produção: usa JSZip para descompactar e extrair nomes
+  // Aqui simulamos o feedback
   const file = input.files[0];
   if (!file) return;
-  const turma = document.getElementById("zipTurma").value;
   const st = document.getElementById("statusZip");
   st.className = "upload-status ok";
-  st.textContent = `✓ ZIP recebido: ${file.name} · Turma: ${turma} — em produção, os PDFs seriam extraídos e vinculados automaticamente.`;
-}
-
-function salvarEmailJS() {
-  localStorage.setItem("ejs_service",       document.getElementById("ejsService")?.value || "");
-  localStorage.setItem("ejs_template_prof", document.getElementById("ejsTemplateProf")?.value || "");
-  localStorage.setItem("ejs_template_aluno",document.getElementById("ejsTemplateAluno")?.value || "");
-  localStorage.setItem("ejs_key",           document.getElementById("ejsKey")?.value || "");
-}
-
-function carregarEmailJS() {
-  const s  = localStorage.getItem("ejs_service") || "";
-  const tp = localStorage.getItem("ejs_template_prof") || "";
-  const ta = localStorage.getItem("ejs_template_aluno") || "";
-  const k  = localStorage.getItem("ejs_key") || "";
-  const f  = id => document.getElementById(id);
-  if (f("ejsService"))       f("ejsService").value = s;
-  if (f("ejsTemplateProf"))  f("ejsTemplateProf").value = tp;
-  if (f("ejsTemplateAluno")) f("ejsTemplateAluno").value = ta;
-  if (f("ejsKey"))           f("ejsKey").value = k;
-}
-
-function getEmailJSConfig() {
-  return {
-    service:       localStorage.getItem("ejs_service") || "SEU_SERVICE_ID",
-    templateProf:  localStorage.getItem("ejs_template_prof") || "SEU_TEMPLATE_CREDENCIAIS",
-    templateAluno: localStorage.getItem("ejs_template_aluno") || "SEU_TEMPLATE_RESULTADO",
-    key:           localStorage.getItem("ejs_key") || "SUA_PUBLIC_KEY"
-  };
+  st.textContent = `✓ ZIP recebido: ${file.name} — em produção, os PDFs seriam extraídos e vinculados aos alunos automaticamente.`;
 }
 
 function gerarSenha(nome, email) {
@@ -1130,23 +1182,21 @@ function handleProfsCSV(input) {
 }
 
 async function enviarCredenciaisProfessores() {
-  const { service: EMAILJS_SERVICE, templateProf: EMAILJS_TEMPLATE, key: EMAILJS_KEY } = getEmailJSConfig();
+  // EmailJS — configurar SERVICE_ID, TEMPLATE_ID e PUBLIC_KEY no guia
+  const EMAILJS_SERVICE  = "SEU_SERVICE_ID";
+  const EMAILJS_TEMPLATE = "SEU_TEMPLATE_CREDENCIAIS";
+  const EMAILJS_KEY      = "SUA_PUBLIC_KEY";
   const SISTEMA_URL      = window.location.href;
 
   const profs = Object.entries(dbProfessores).filter(([,p])=>!p.isCoord);
   if (profs.length === 0) { showToast("⚠️ Nenhum professor carregado."); return; }
 
   if (EMAILJS_SERVICE === "SEU_SERVICE_ID") {
-    // Modo sem EmailJS: copiar para área de transferência
+    // Modo sem EmailJS: mostrar modal com instruções manuais
     const linhas = profs.map(([id,p])=>
-      `Para: ${p.email}\nNome: ${p.nome}\nUsuário: ${id}\nSenha: ${p.senha}\nLink: ${SISTEMA_URL}\n`
-    ).join("\n---\n\n");
-    try {
-      await navigator.clipboard.writeText(linhas);
-      showToast("📋 Credenciais copiadas! Cole no seu e-mail e envie manualmente.");
-    } catch {
-      alert("Credenciais para envio manual:\n\n" + linhas);
-    }
+      `${p.nome} | usuário: ${id} | senha: ${p.senha} | ${p.email}`
+    ).join("\n");
+    alert("EmailJS não configurado.\n\nCredenciais para enviar manualmente:\n\n" + linhas + "\n\nLink do sistema: " + SISTEMA_URL);
     return;
   }
 
@@ -1194,12 +1244,9 @@ async function loadAtribTable() {
     const a = alunos[aid];
     const tid = "T" + aid.slice(1);
     const at = atrib[tid] || {};
-    const turmaStr = String(a.turma || "1");
     const tr = document.createElement("tr");
-    tr.dataset.turma = turmaStr;
     tr.innerHTML = `
       <td><strong>${a.nome}</strong><br><small style="color:var(--muted)">${a.email}</small></td>
-      <td><span style="font-size:0.75rem;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:10px;font-weight:600">${a.turmaLabel || "Turma "+turmaStr}</span></td>
       <td>${a.codigo}</td>
       <td>
         <select class="select-prof" id="av1-${tid}">
@@ -1234,23 +1281,13 @@ async function salvarAtribuicoes() {
 // ══════════════════════════════════════════════════════
 // COORDENADOR — RESULTADOS
 // ══════════════════════════════════════════════════════
-let _resultFiltro = "todas";
-
-function filtrarResultados(turma) {
-  _resultFiltro = turma;
-  document.querySelectorAll(".result-card").forEach(card => {
-    const t = card.dataset.turma || "";
-    card.style.display = (turma === "todas" || t === turma) ? "" : "none";
-  });
-}
-
 async function loadResultados() {
   const grid = document.getElementById("resultsGrid");
   grid.innerHTML = `<div class="loading">Carregando...</div>`;
 
-  const alunos     = await dbRead("alunos")      || dbAlunos;
-  const atrib      = await dbRead("atribuicoes")  || dbAtribuicoes;
-  const avaliacoes = await dbRead("avaliacoes")   || {};
+  const alunos = await dbRead("alunos") || dbAlunos;
+  const atrib = await dbRead("atribuicoes") || dbAtribuicoes;
+  const avaliacoes = await dbRead("avaliacoes") || {};
 
   grid.innerHTML = "";
 
@@ -1260,129 +1297,43 @@ async function loadResultados() {
     return;
   }
 
-  // Agrupar por turma
-  const turmas = ["Matutino", "Noturno", "Sem turma"];
-  turmas.forEach(turmaAtual => {
-    const alunosDaTurma = alunoIds.filter(aid => {
-      const t = alunos[aid].turma || "Sem turma";
-      return t === turmaAtual;
-    });
-    if (alunosDaTurma.length === 0) return;
-
-    const turmaColor = turmaAtual === "Matutino" ? "#c9a84c" : turmaAtual === "Noturno" ? "#3a5bbf" : "#999";
-    const turmaIcon  = turmaAtual === "Matutino" ? "☀️" : turmaAtual === "Noturno" ? "🌙" : "📋";
-
-    // Cabeçalho da turma
-    const header = document.createElement("div");
-    header.style.cssText = `font-weight:700;font-size:0.8rem;letter-spacing:0.08em;text-transform:uppercase;color:${turmaColor};padding:0.5rem 0 0.25rem;margin-top:0.5rem;border-bottom:2px solid ${turmaColor}22;margin-bottom:0.5rem`;
-    header.textContent = `${turmaIcon} Turma ${turmaAtual}`;
-    header.dataset.turmaHeader = turmaAtual;
-    grid.appendChild(header);
-
-    alunosDaTurma.forEach(aid => {
-      const a   = alunos[aid];
-      const tid = "T" + aid.slice(1);
-      const at  = atrib[tid] || {};
-      const ev1 = at.av1 ? (avaliacoes[tid]||{})[at.av1] : null;
-      const ev2 = at.av2 ? (avaliacoes[tid]||{})[at.av2] : null;
-      const n1  = ev1 ? calcTotalFromEv(ev1) : null;
-      const n2  = ev2 ? calcTotalFromEv(ev2) : null;
-      const media = (n1!==null && n2!==null) ? ((n1+n2)/2) : null;
-
-      const card = document.createElement("div");
-      card.className = "result-card";
-      card.dataset.turma = turmaAtual;
-      card.style.display = (_resultFiltro === "todas" || _resultFiltro === turmaAtual) ? "" : "none";
-      card.innerHTML = `
-        <h4>
-          ${a.nome}
-          <small style="color:var(--muted);font-weight:400"> — ${a.codigo}</small>
-          <span style="font-size:0.68rem;font-weight:600;color:${turmaColor};margin-left:6px">${turmaIcon} ${turmaAtual}</span>
-        </h4>
-        <div class="result-scores">
-          <div class="result-score">
-            <span class="rs-label">Avaliador 1: </span>
-            <span class="rs-val ${n1!==null&&n1<7?'low':''}">${n1!==null?n1.toFixed(1):"Pendente"}</span>
-          </div>
-          <div class="result-score">
-            <span class="rs-label">Avaliador 2: </span>
-            <span class="rs-val ${n2!==null&&n2<7?'low':''}">${n2!==null?n2.toFixed(1):"Pendente"}</span>
-          </div>
-        </div>
-        <div>
-          <span style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em">Média Final: </span>
-          <span class="result-avg ${media!==null&&media<7?'low':''}">${media!==null?media.toFixed(1):"—"}</span>
-        </div>`;
-      grid.appendChild(card);
-    });
-  });
-
-  // Atualizar cabeçalhos de turma quando filtrar
-  document.querySelectorAll("[data-turma-header]").forEach(h => {
-    const t = h.dataset.turmaHeader;
-    h.style.display = (_resultFiltro === "todas" || _resultFiltro === t) ? "" : "none";
-  });
-}
-
-async function exportarResultados() {
-  const alunos    = await dbRead("alunos")     || dbAlunos;
-  const atrib     = await dbRead("atribuicoes") || dbAtribuicoes;
-  const avaliacoes= await dbRead("avaliacoes")  || {};
-  const filtro    = document.getElementById("filtroResultTurma")?.value || "Todas";
-
-  const rows = ["Nome,Email,Turma,Codigo,Avaliador1,Avaliador2,Media"];
-  Object.entries(alunos).forEach(([aid, a]) => {
-    if (filtro !== "Todas" && a.turma !== filtro) return;
+  alunoIds.forEach(aid => {
+    const a = alunos[aid];
     const tid = "T" + aid.slice(1);
-    const at  = atrib[tid] || {};
+    const at = atrib[tid] || {};
     const ev1 = at.av1 ? (avaliacoes[tid]||{})[at.av1] : null;
     const ev2 = at.av2 ? (avaliacoes[tid]||{})[at.av2] : null;
-    const n1  = ev1 ? calcTotalFromEv(ev1).toFixed(1) : "Pendente";
-    const n2  = ev2 ? calcTotalFromEv(ev2).toFixed(1) : "Pendente";
-    const media = (ev1 && ev2) ? ((calcTotalFromEv(ev1)+calcTotalFromEv(ev2))/2).toFixed(1) : "—";
-    rows.push(`"${a.nome}","${a.email}","${a.turma||""}","${a.codigo}",${n1},${n2},${media}`);
-  });
 
-  const blob = new Blob([rows.join("\n")], { type:"text/csv;charset=utf-8;" });
-  const url  = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  const turmaLabel = filtro === "Todas" ? "todas-turmas" : filtro.toLowerCase();
-  link.href = url;
-  link.download = `resultados-tfg-${turmaLabel}-${new Date().toISOString().slice(0,10)}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
-  showToast("✅ CSV exportado!");
-}
+    const n1 = ev1 ? calcTotalFromEv(ev1) : null;
+    const n2 = ev2 ? calcTotalFromEv(ev2) : null;
+    const media = (n1!==null && n2!==null) ? ((n1+n2)/2) : null;
 
-function montarFichaAluno(ev, titulo) {
-  if (!ev) return titulo + "\nAvaliação pendente.\n";
-  let ficha = titulo + "\n" + "=".repeat(40) + "\n";
-  CAMPOS.forEach(campo => {
-    const campoEv = ev[campo.id] || {};
-    let pts = 0, count = 0, comps = [];
-    campo.criterios.forEach(c => {
-      const v = campoEv[c.id];
-      if (v !== undefined) { pts += v.pts; count++; }
-      const ck = campo.id + "_" + c.id + "_comment";
-      if (ev[ck]) comps.push("  " + c.nome + ": " + ev[ck]);
-    });
-    const nota = count > 0 ? ((pts/(campo.criterios.length*2.5))*10).toFixed(1) : "—";
-    ficha += "\n" + campo.num + " — " + campo.titulo + ": " + nota + "/10\n";
-    if (comps.length) ficha += comps.join("\n") + "\n";
+    const card = document.createElement("div");
+    card.className = "result-card";
+    card.innerHTML = `
+      <h4>${a.nome} <small style="color:var(--muted);font-weight:400">— ${a.codigo}</small></h4>
+      <div class="result-scores">
+        <div class="result-score">
+          <span class="rs-label">Avaliador 1: </span>
+          <span class="rs-val ${n1!==null&&n1<7?'low':''}">${n1!==null?n1.toFixed(1):"Pendente"}</span>
+        </div>
+        <div class="result-score">
+          <span class="rs-label">Avaliador 2: </span>
+          <span class="rs-val ${n2!==null&&n2<7?'low':''}">${n2!==null?n2.toFixed(1):"Pendente"}</span>
+        </div>
+      </div>
+      <div>
+        <span style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em">Média Final: </span>
+        <span class="result-avg ${media!==null&&media<7?'low':''}">${media!==null?media.toFixed(1):"—"}</span>
+      </div>`;
+    grid.appendChild(card);
   });
-  const tEv = (ev.transversal||{}).org;
-  if (tEv) {
-    ficha += "\nOrganização Geral: " + ((tEv.pts/2.5)*10).toFixed(1) + "/10\n";
-    const tc = ev["transversal_org_comment"];
-    if (tc) ficha += "  " + tc + "\n";
-  }
-  if (ev.generalComment) ficha += "\nComentário Geral:\n" + ev.generalComment + "\n";
-  if (ev.ajusteNota) ficha += "\nNota ajustada: " + ev.ajusteNota + "\n";
-  return ficha;
 }
 
 async function liberarResultados() {
-  const { service: EMAILJS_SERVICE, templateAluno: EMAILJS_TEMPLATE, key: EMAILJS_KEY } = getEmailJSConfig();
+  const EMAILJS_SERVICE  = "SEU_SERVICE_ID";
+  const EMAILJS_TEMPLATE = "SEU_TEMPLATE_RESULTADO";
+  const EMAILJS_KEY      = "SUA_PUBLIC_KEY";
   const SISTEMA_URL      = window.location.href;
 
   const alunos    = await dbRead("alunos")     || dbAlunos;
@@ -1427,18 +1378,13 @@ async function liberarResultados() {
   if (EMAILJS_SERVICE === "SEU_SERVICE_ID") {
     // Modo sem EmailJS: resumo para envio manual
     const resumo = resultados.map(r =>
-      `${r.nome} [${r.turma}] (${r.email})\n  Nota Final: ${r.media}\n\n${r.fichaCompleta}`
-    ).join("\n\n" + "=".repeat(60) + "\n\n");
-    try {
-      await navigator.clipboard.writeText(
-        `${prontos.length} resultado(s) prontos\n` +
-        (pendentes.length ? `Pendentes: ${pendentes.map(r=>r.nome).join(", ")}\n` : "") +
-        "\n" + resumo
-      );
-      showToast("📋 Resultados copiados! Cole no seu e-mail e envie manualmente.");
-    } catch {
-      alert(`${prontos.length} resultado(s) prontos.\n\n` + resumo);
-    }
+      `${r.nome} (${r.email})\n  Nota: ${r.media}\n  Comentários: ${r.comentarios}`
+    ).join("\n\n---\n\n");
+    alert(
+      `${prontos.length} resultado(s) prontos para envio.\n` +
+      (pendentes.length ? `${pendentes.length} ainda pendente(s): ${pendentes.map(r=>r.nome).join(", ")}\n\n` : "\n") +
+      "Resultados para envio manual:\n\n" + resumo
+    );
     statusEl.style.background = "var(--ok-light)";
     statusEl.style.color = "var(--ok)";
     statusEl.textContent = `✓ ${prontos.length} resultado(s) prontos · ${pendentes.length} pendente(s) · EmailJS não configurado — envio manual necessário`;
@@ -1453,9 +1399,9 @@ async function liberarResultados() {
     try {
       await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
         to_name: r.nome, to_email: r.email,
-        codigo: r.codigo, turma: r.turma,
-        nota_final: r.media, avaliador1: r.n1, avaliador2: r.n2,
-        ficha_completa: r.fichaCompleta, link: SISTEMA_URL
+        codigo: r.codigo, nota_final: r.media,
+        avaliador1: r.n1, avaliador2: r.n2,
+        comentarios: r.comentarios, link: SISTEMA_URL
       });
       enviados++;
     } catch(err) { console.error("Erro ao enviar para", r.email, err); }
@@ -1473,8 +1419,6 @@ async function loadCoordData() {
   dbAlunos = await dbRead("alunos") || dbAlunos;
   dbProfessores = await dbRead("professores") || dbProfessores;
   dbAtribuicoes = await dbRead("atribuicoes") || dbAtribuicoes;
-  // Carregar config EmailJS salva
-  setTimeout(carregarEmailJS, 100);
 }
 
 // ══════════════════════════════════════════════════════
@@ -1496,32 +1440,30 @@ function showToast(msg) {
   t.classList.add("show");
   setTimeout(() => t.classList.remove("show"), 3200);
 }
-// ══════════════════════════════════════════════════════
-// EXPORTAR NOTAS
-// ══════════════════════════════════════════════════════
+// ══ EXPORTAR NOTAS ══
 async function exportarNotas() {
-  const alunos    = await dbRead("alunos")     || dbAlunos;
-  const atrib     = await dbRead("atribuicoes") || dbAtribuicoes;
-  const avaliacoes= await dbRead("avaliacoes")  || {};
+  const alunos     = await dbRead("alunos")      || dbAlunos;
+  const atrib      = await dbRead("atribuicoes")  || dbAtribuicoes;
+  const avaliacoes = await dbRead("avaliacoes")   || {};
 
   if (Object.keys(alunos).length === 0) {
     showToast("⚠️ Nenhum aluno carregado.");
     return;
   }
 
-  const linhas = ["Nome,Email,Codigo,Avaliador1,Avaliador2,Media"];
-
+  const linhas = ["Nome,Email,Turma,Codigo,Avaliador1,Avaliador2,Media"];
   Object.entries(alunos).forEach(([aid, a]) => {
-    const tid = "T" + aid.slice(1);
-    const at  = atrib[tid] || {};
-    const ev1 = at.av1 ? (avaliacoes[tid]||{})[at.av1] : null;
-    const ev2 = at.av2 ? (avaliacoes[tid]||{})[at.av2] : null;
-    const n1  = ev1 ? calcTotalFromEv(ev1).toFixed(1) : "Pendente";
-    const n2  = ev2 ? calcTotalFromEv(ev2).toFixed(1) : "Pendente";
+    const tid   = "T" + aid.slice(1);
+    const at    = atrib[tid] || {};
+    const ev1   = at.av1 ? (avaliacoes[tid]||{})[at.av1] : null;
+    const ev2   = at.av2 ? (avaliacoes[tid]||{})[at.av2] : null;
+    const n1    = ev1 ? calcTotalFromEv(ev1).toFixed(1) : "Pendente";
+    const n2    = ev2 ? calcTotalFromEv(ev2).toFixed(1) : "Pendente";
     const media = (ev1 && ev2)
       ? ((calcTotalFromEv(ev1) + calcTotalFromEv(ev2)) / 2).toFixed(1)
       : "—";
-    linhas.push(`"${a.nome}","${a.email}","${a.codigo}",${n1},${n2},${media}`);
+    const turma = a.turma || "Não informada";
+    linhas.push('"' + a.nome + '","' + a.email + '","' + turma + '","' + a.codigo + '",' + n1 + ',' + n2 + ',' + media);
   });
 
   const blob = new Blob([linhas.join("\n")], { type:"text/csv;charset=utf-8;" });
@@ -1536,59 +1478,57 @@ async function exportarNotas() {
   showToast("✅ CSV exportado!");
 }
 
+// ══ NOVO SEMESTRE ══
+async function novoSemestre() {
+  const confirm1 = confirm(
+    "⚠️ Isso vai apagar TODOS os dados do semestre atual:\n\n" +
+    "• Lista de alunos\n• Lista de professores\n• Atribuições\n• Avaliações\n\n" +
+    "Esta ação não pode ser desfeita. Confirma?"
+  );
+  if (!confirm1) return;
+
+  const confirm2 = confirm("Tem certeza? Todos os dados serão perdidos permanentemente.");
+  if (!confirm2) return;
+
+  showToast("🗑 Limpando dados...");
+
+  await dbWrite("alunos", null);
+  await dbWrite("professores", null);
+  await dbWrite("atribuicoes", null);
+  await dbWrite("avaliacoes", null);
+  await dbWrite("trabalhos", null);
+
+  dbAlunos = {};
+  dbTrabalhos = {};
+  dbProfessores = {};
+  dbAtribuicoes = {};
+  localEvals = {};
+
+  // Limpar status dos uploads na tela
+  ["statusAlunos","statusZip","statusProfs"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.className = "upload-status"; el.textContent = ""; }
+  });
+  const wrap = document.getElementById("profsGeradosWrap");
+  if (wrap) wrap.style.display = "none";
+
+  showToast("✅ Dados do semestre apagados! Pode subir os novos arquivos.");
+}
+
 // ── INIT ──
-// Init robusto — funciona com scripts tipo module
-function initApp() {
+(function init() {
+  // Esconder todas as telas via style direto
   ["loginScreen","workListScreen","evalScreen","coordScreen"].forEach(id => {
     const el = document.getElementById(id);
-    if (el) { el.classList.remove("active"); el.style.display = "none"; }
+    if (el) el.style.display = "none";
   });
+  // Mostrar login com flex
   const login = document.getElementById("loginScreen");
   if (login) {
     login.classList.add("active");
     login.style.display = "flex";
   }
-  const u = document.getElementById("loginUser");
-  if (u) u.focus();
-}
-
-// Tentar DOMContentLoaded primeiro, fallback para window.onload
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initApp);
-} else {
-  initApp();
-}
-window.addEventListener("load", function() {
-  const login = document.getElementById("loginScreen");
-  if (login && login.style.display !== "flex") {
-    initApp();
-  }
-});
-
-
-// ══ EXPOR FUNÇÕES AO HTML ══
-window.doLogin        = doLogin;
-window.doLogout       = doLogout;
-window.switchTab      = switchTab;
-window.openWork       = openWork;
-window.goBack         = goBack;
-window.saveEval       = saveEval;
-window.clearEval      = clearEval;
-window.togglePdf      = togglePdf;
-window.selectNivel    = selectNivel;
-window.handleAlunosCSV    = handleAlunosCSV;
-window.handleZip          = handleZip;
-window.handleProfsCSV     = handleProfsCSV;
-window.loadAtribTable     = loadAtribTable;
-window.salvarAtribuicoes  = salvarAtribuicoes;
-window.loadResultados     = loadResultados;
-window.liberarResultados  = liberarResultados;
-window.exportarResultados = exportarResultados;
-window.enviarCredenciaisProfessores = enviarCredenciaisProfessores;
-
-// ══ INIT ══
-initApp();
-
+})();
 </script>
 </body>
 </html>
