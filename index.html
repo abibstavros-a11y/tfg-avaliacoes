@@ -5,12 +5,369 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Avaliação — TFG I</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-<!-- EmailJS SDK -->
-<!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+:root {
+  --bg:#f7f5f2;--surface:#ffffff;--surface2:#f0ede8;--border:#e0dbd3;--border2:#ccc8c0;
+  --text:#1c1a17;--muted:#7a7570;--accent:#1a3a2a;--accent-light:#e8f0eb;--accent2:#c9a84c;
+  --danger:#8b2020;--danger-light:#fdf0f0;--warn:#7a4f00;--warn-light:#fdf6e3;
+  --ok:#1a3a2a;--ok-light:#e8f0eb;
+  --nivel-1:#fdf0f0;--nivel-2:#fdf6e3;--nivel-3:#f0f4ff;--nivel-4:#e8f0eb;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6;}
+header{background:var(--accent);color:white;padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 16px rgba(0,0,0,.2);}
+header h1{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:600;}
+header p{font-size:.75rem;opacity:.7;margin-top:1px;}
+.score-pill{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:24px;padding:5px 14px;text-align:center;display:none;}
+.score-pill .val{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:600;line-height:1;}
+.score-pill .lbl{font-size:.6rem;opacity:.7;letter-spacing:.08em;text-transform:uppercase;}
+.header-right{display:flex;align-items:center;gap:1rem;}
+.btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 12px;color:white;font-family:inherit;font-size:.775rem;cursor:pointer;display:none;transition:background .2s;}
+.btn-logout:hover{background:rgba(255,255,255,.25);}
+.container{max-width:880px;margin:0 auto;padding:2rem 1.5rem 4rem;}
+.screen{display:none;}
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 64px);}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.08);}
+.login-card h2{font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:.25rem;}
+.login-card>p{color:var(--muted);font-size:.875rem;margin-bottom:1.75rem;}
+.form-group{margin-bottom:1.1rem;}
+.form-group label{display:block;font-size:.75rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
+.form-group input,.form-group select{width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 13px;font-family:inherit;font-size:.9rem;background:var(--bg);color:var(--text);outline:none;transition:border-color .2s;}
+.form-group input:focus,.form-group select:focus{border-color:var(--accent);}
+.btn-primary{width:100%;padding:11px;background:var(--accent);color:white;border:none;border-radius:8px;font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-primary:hover{background:#122a1e;transform:translateY(-1px);box-shadow:0 4px 14px rgba(26,58,42,.3);}
+.login-error{color:var(--danger);font-size:.8rem;margin-top:.6rem;display:none;}
+.section-title{font-family:'Playfair Display',serif;font-size:1.25rem;margin-bottom:.2rem;padding-top:1.5rem;}
+.section-sub{color:var(--muted);font-size:.85rem;margin-bottom:1.5rem;}
+.work-cards{display:grid;gap:.875rem;}
+.work-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid transparent;border-radius:10px;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .2s;}
+.work-card:hover{border-color:var(--accent);border-left-color:var(--accent);box-shadow:0 3px 14px rgba(0,0,0,.06);}
+.work-card.done{border-left-color:var(--accent2);}
+.work-card-info h3{font-weight:600;font-size:.9rem;margin-bottom:2px;}
+.work-card-info p{font-size:.775rem;color:var(--muted);}
+.badge{font-size:.72rem;font-weight:600;padding:3px 11px;border-radius:20px;flex-shrink:0;}
+.badge-pending{background:var(--warn-light);color:var(--warn);}
+.badge-done{background:var(--ok-light);color:var(--ok);}
+.eval-header{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.4rem;margin-bottom:1.25rem;margin-top:1.5rem;display:flex;align-items:center;justify-content:space-between;}
+.eval-header h2{font-family:'Playfair Display',serif;font-size:1.1rem;}
+.eval-header p{font-size:.775rem;color:var(--muted);margin-top:2px;}
+.btn-back{background:none;border:1px solid var(--border);border-radius:7px;padding:6px 13px;font-family:inherit;font-size:.8rem;cursor:pointer;color:var(--muted);transition:all .2s;}
+.btn-back:hover{border-color:var(--accent);color:var(--accent);}
+.pdf-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:1.25rem;overflow:hidden;}
+.pdf-header{padding:.75rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2);}
+.pdf-header span{font-size:.75rem;font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;}
+.pdf-toggle{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 11px;font-family:inherit;font-size:.75rem;cursor:pointer;color:var(--muted);transition:all .2s;}
+.pdf-toggle:hover{border-color:var(--accent);color:var(--accent);}
+.pdf-frame{width:100%;height:480px;border:none;display:block;}
+.pdf-frame.collapsed{display:none;}
+.score-summary{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1.25rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:.6rem;}
+.score-item{text-align:center;padding:.6rem;border-radius:7px;background:var(--bg);border:1px solid var(--border);}
+.score-item .s-label{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;line-height:1.3;}
+.score-item .s-val{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--accent);}
+.score-item.total{background:var(--accent);border-color:var(--accent);}
+.score-item.total .s-label{color:rgba(255,255,255,.7);}
+.score-item.total .s-val{color:white;font-size:1.5rem;}
+.campo-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:1rem;overflow:hidden;}
+.campo-header{padding:.875rem 1.25rem;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between;}
+.campo-num{font-family:'Playfair Display',serif;font-size:.775rem;color:var(--muted);margin-right:7px;}
+.campo-title{font-weight:600;font-size:.9rem;}
+.campo-score-badge{font-size:.775rem;font-weight:700;padding:2px 11px;border-radius:20px;background:var(--bg);border:1px solid var(--border);color:var(--muted);transition:all .3s;}
+.campo-score-badge.scored{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
+.campo-score-badge.low{background:var(--danger-light);border-color:var(--danger);color:var(--danger);}
+.campo-body{padding:1.1rem 1.25rem;}
+.criterio-block{margin-bottom:1.1rem;padding-bottom:1.1rem;border-bottom:1px solid var(--border);}
+.criterio-block:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.criterio-label{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;display:flex;align-items:center;gap:6px;}
+.critico-tag{background:var(--accent);color:white;font-size:.58rem;padding:1px 6px;border-radius:10px;}
+.orientacao{font-size:.8rem;color:var(--muted);background:var(--bg);border-left:3px solid var(--border2);padding:.55rem .8rem;border-radius:0 6px 6px 0;margin-bottom:.8rem;line-height:1.55;}
+.orientacao .atencao{color:var(--warn);font-weight:600;}
+.nivel-selector{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;}
+.nivel-btn{border:2px solid var(--border);border-radius:7px;padding:7px 3px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface);user-select:none;}
+.nivel-btn:hover{border-color:var(--border2);background:var(--bg);}
+.nivel-btn .nivel-name{font-size:.62rem;font-weight:600;line-height:1.2;margin-bottom:2px;color:var(--text);}
+.nivel-btn .nivel-pts{font-family:'Playfair Display',serif;font-size:.85rem;color:var(--muted);}
+.nivel-btn[data-nivel="0"].selected{border-color:#888;background:#f0f0f0;}
+.nivel-btn[data-nivel="1"].selected{border-color:#c0392b;background:var(--nivel-1);}
+.nivel-btn[data-nivel="1"].selected .nivel-pts{color:#c0392b;}
+.nivel-btn[data-nivel="2"].selected{border-color:#b07800;background:var(--nivel-2);}
+.nivel-btn[data-nivel="2"].selected .nivel-pts{color:#b07800;}
+.nivel-btn[data-nivel="3"].selected{border-color:#3a5bbf;background:var(--nivel-3);}
+.nivel-btn[data-nivel="3"].selected .nivel-pts{color:#3a5bbf;}
+.nivel-btn[data-nivel="4"].selected{border-color:#2a6b45;background:var(--nivel-4);}
+.nivel-btn[data-nivel="4"].selected .nivel-pts{color:#2a6b45;}
+.nivel-btn[data-nivel="5"].selected{border-color:var(--accent);background:var(--accent);}
+.nivel-btn[data-nivel="5"].selected .nivel-name{color:white;}
+.nivel-btn[data-nivel="5"].selected .nivel-pts{color:rgba(255,255,255,.85);}
+.comment-area{margin-top:.875rem;display:none;}
+.comment-area.visible{display:block;}
+.comment-area label{font-size:.7rem;font-weight:600;color:var(--danger);letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:5px;margin-bottom:.35rem;}
+.comment-area textarea{width:100%;border:1px solid #e0b0b0;border-radius:7px;padding:9px 11px;font-family:inherit;font-size:.85rem;resize:vertical;min-height:72px;outline:none;background:var(--danger-light);color:var(--text);transition:border-color .2s;}
+.comment-area textarea:focus{border-color:var(--danger);}
+.transversal-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:1rem;overflow:hidden;}
+.transversal-header{padding:.875rem 1.25rem;border-bottom:1px solid var(--border);background:#f8f5ee;display:flex;align-items:center;justify-content:space-between;}
+.transversal-header .campo-title{color:var(--accent2);}
+.card-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.25rem;margin-bottom:1rem;}
+.card-section h3{font-weight:600;font-size:.9rem;margin-bottom:.2rem;}
+.card-section>p{font-size:.78rem;color:var(--muted);margin-bottom:.75rem;}
+.card-section textarea{width:100%;border:1px solid var(--border);border-radius:7px;padding:9px 11px;font-family:inherit;font-size:.85rem;resize:vertical;min-height:85px;outline:none;background:var(--bg);color:var(--text);transition:border-color .2s;}
+.card-section textarea:focus{border-color:var(--accent);}
+.ajuste-row{display:flex;gap:1rem;align-items:flex-start;}
+.ajuste-nota{flex-shrink:0;}
+.ajuste-nota label{font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;display:block;margin-bottom:.35rem;}
+.ajuste-nota input{width:85px;border:1px solid var(--border);border-radius:7px;padding:8px 11px;font-family:'Playfair Display',serif;font-size:1.05rem;text-align:center;outline:none;background:var(--bg);color:var(--text);transition:border-color .2s;}
+.ajuste-nota input:focus{border-color:var(--accent);}
+.ajuste-justif{flex:1;}
+.ajuste-justif label{font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;display:block;margin-bottom:.35rem;}
+.actions{display:flex;gap:.875rem;justify-content:flex-end;margin-top:1.25rem;}
+.btn-save{padding:10px 26px;background:var(--accent);color:white;border:none;border-radius:7px;font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-save:hover{background:#122a1e;transform:translateY(-1px);box-shadow:0 4px 14px rgba(26,58,42,.3);}
+.btn-secondary{padding:10px 18px;background:none;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:.85rem;cursor:pointer;color:var(--muted);transition:all .2s;}
+.btn-secondary:hover{border-color:var(--danger);color:var(--danger);}
+.coord-tabs{display:flex;gap:0;margin-bottom:1.5rem;margin-top:1.5rem;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);}
+.coord-tab{flex:1;padding:.75rem;text-align:center;cursor:pointer;font-size:.85rem;font-weight:500;color:var(--muted);border-right:1px solid var(--border);transition:all .2s;background:var(--surface);}
+.coord-tab:last-child{border-right:none;}
+.coord-tab.active{background:var(--accent);color:white;font-weight:600;}
+.coord-tab:hover:not(.active){background:var(--bg);}
+.coord-panel{display:none;}
+.coord-panel.active{display:block;}
+.upload-zone{border:2px dashed var(--border2);border-radius:10px;padding:2rem;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:1rem;}
+.upload-zone:hover{border-color:var(--accent);background:var(--accent-light);}
+.upload-zone input{display:none;}
+.upload-zone .icon{font-size:2rem;margin-bottom:.5rem;}
+.upload-zone h4{font-weight:600;font-size:.9rem;margin-bottom:.25rem;}
+.upload-zone p{font-size:.775rem;color:var(--muted);}
+.upload-status{font-size:.8rem;padding:.6rem 1rem;border-radius:7px;margin-top:.5rem;display:none;}
+.upload-status.ok{background:var(--ok-light);color:var(--ok);display:block;}
+.upload-status.err{background:var(--danger-light);color:var(--danger);display:block;}
+.table-wrap{overflow-x:auto;margin-bottom:1.25rem;}
+table{width:100%;border-collapse:collapse;font-size:.85rem;}
+th{background:var(--surface2);padding:.6rem .875rem;text-align:left;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);}
+td{padding:.6rem .875rem;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+.select-prof{border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-family:inherit;font-size:.8rem;background:var(--bg);color:var(--text);outline:none;width:100%;}
+.select-prof:focus{border-color:var(--accent);}
+.results-grid{display:grid;gap:.75rem;}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;}
+.result-card h4{font-weight:600;font-size:.9rem;margin-bottom:.4rem;}
+.result-scores{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem;}
+.result-score{font-size:.8rem;}
+.result-score .rs-label{color:var(--muted);}
+.result-score .rs-val{font-family:'Playfair Display',serif;font-size:1rem;color:var(--accent);font-weight:600;}
+.result-score .rs-val.low{color:var(--danger);}
+.result-avg{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--accent);font-weight:600;}
+.result-avg.low{color:var(--danger);}
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--accent);color:white;padding:11px 18px;border-radius:9px;font-size:.85rem;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.2);transform:translateY(80px);opacity:0;transition:all .3s;z-index:200;}
+.toast.show{transform:translateY(0);opacity:1;}
+.loading{text-align:center;padding:3rem;color:var(--muted);font-size:.875rem;}
+@media(max-width:600px){.nivel-selector{grid-template-columns:repeat(3,1fr)};.ajuste-row{flex-direction:column};.coord-tabs{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Sistema de Avaliação — TFG I</h1>
+    <p id="headerSub">Avaliação cega · Acesso restrito</p>
+  </div>
+  <div class="header-right">
+    <div class="score-pill" id="scorePill">
+      <div class="val" id="scoreVal">—</div>
+      <div class="lbl">Nota atual</div>
+    </div>
+    <button class="btn-logout" id="btnLogout" onclick="doLogout()">Sair</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- LOGIN -->
+  <div id="loginScreen">
+    <div class="login-card">
+      <h2>Acesso ao Sistema</h2>
+      <p>Entre com seu usuário e senha fornecidos pelo coordenador.</p>
+      <div class="form-group">
+        <label>Usuário</label>
+        <input type="text" id="loginUser" placeholder="Ex: ana.lima"
+          onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="loginPass" placeholder="Senha recebida por e-mail"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-primary" id="btnEntrar" onclick="doLogin()">Entrar</button>
+      <div class="login-error" id="loginError">Usuário ou senha inválidos.</div>
+    </div>
+  </div>
+
+  <!-- LISTA DE TRABALHOS -->
+  <div id="workListScreen" class="screen">
+    <h2 class="section-title" id="profName">Bem-vindo</h2>
+    <p class="section-sub" id="profSub">Selecione um trabalho para avaliar.</p>
+    <div class="work-cards" id="workCards"><div class="loading">Carregando...</div></div>
+  </div>
+
+  <!-- AVALIAÇÃO -->
+  <div id="evalScreen" class="screen">
+    <div class="eval-header">
+      <div><h2 id="workTitle">—</h2><p id="workCode">—</p></div>
+      <button class="btn-back" onclick="goBack()">← Voltar</button>
+    </div>
+    <div class="pdf-section">
+      <div class="pdf-header">
+        <span>📄 Trabalho</span>
+        <button class="pdf-toggle" onclick="togglePdf()">Recolher</button>
+      </div>
+      <iframe class="pdf-frame" id="pdfFrame" src=""></iframe>
+    </div>
+    <div class="score-summary" id="scoreSummary"></div>
+    <div id="camposContainer"></div>
+    <div class="transversal-card">
+      <div class="transversal-header">
+        <div><span class="campo-num">Transversal</span><span class="campo-title">Organização Geral</span></div>
+        <span class="campo-score-badge" id="badge-transversal">—</span>
+      </div>
+      <div class="campo-body">
+        <div class="criterio-block">
+          <div class="criterio-label">Organização</div>
+          <div class="orientacao">O documento respeita os limites de palavras? A linguagem é acadêmica? Cada campo cumpre sua função sem repetir conteúdo de outros? A formatação é consistente?</div>
+          <div class="nivel-selector" data-campo="transversal" data-criterio="org"></div>
+          <div class="comment-area" id="ca-transversal-org">
+            <label>⚠ Comentário obrigatório — nota abaixo de 7</label>
+            <textarea data-campo="transversal" data-criterio="org" placeholder="Indique os problemas de organização..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-section">
+      <h3>Comentário Geral</h3>
+      <p>Síntese da avaliação — pontos fortes, fragilidades e recomendações.</p>
+      <textarea id="generalComment" placeholder="Escreva seu comentário geral..."></textarea>
+    </div>
+    <div class="card-section">
+      <h3>Ajuste de Nota</h3>
+      <p>Se algum aspecto não foi capturado pela rubrica, ajuste a nota e justifique.</p>
+      <div class="ajuste-row">
+        <div class="ajuste-nota">
+          <label>Nota final</label>
+          <input type="number" id="ajusteNota" min="0" max="10" step="0.1" placeholder="—" oninput="updateScore()">
+        </div>
+        <div class="ajuste-justif">
+          <label>Justificativa</label>
+          <textarea id="ajusteJustif" placeholder="Explique o motivo do ajuste..." style="min-height:65px"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-secondary" onclick="clearEval()">🗑 Limpar</button>
+      <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent)" onclick="goBack()">← Voltar sem salvar</button>
+      <button class="btn-save" onclick="saveEval()">💾 Salvar e Voltar</button>
+    </div>
+  </div>
+
+  <!-- COORDENADOR -->
+  <div id="coordScreen" class="screen">
+    <h2 class="section-title">Painel do Coordenador</h2>
+    <p class="section-sub">Gerencie uploads, atribuições e resultados.</p>
+    <div class="coord-tabs">
+      <div class="coord-tab active" onclick="switchTab('uploads')">📁 Uploads</div>
+      <div class="coord-tab" onclick="switchTab('atribuicoes')">👥 Atribuições</div>
+      <div class="coord-tab" onclick="switchTab('resultados')">📊 Resultados</div>
+    </div>
+    <div class="coord-panel active" id="tab-uploads">
+      <div class="card-section">
+        <h3>1. Lista de Alunos</h3>
+        <p>CSV com colunas: <code>nome,email,turma</code></p>
+        <div class="upload-zone" onclick="document.getElementById('uploadAlunos').click()">
+          <input type="file" id="uploadAlunos" accept=".csv" onchange="handleAlunosCSV(this)">
+          <div class="icon">👥</div>
+          <h4>Selecionar CSV de alunos</h4>
+          <p>nome,email,turma — um aluno por linha</p>
+        </div>
+        <div class="upload-status" id="statusAlunos"></div>
+      </div>
+      <div class="card-section">
+        <h3>2. Trabalhos — ZIP do Moodle</h3>
+        <p>Selecione a turma antes de subir o ZIP.</p>
+        <div class="form-group" style="margin-bottom:.75rem">
+          <label>Turma do ZIP</label>
+          <select id="zipTurma" style="max-width:220px">
+            <option value="Matutino">Matutino</option>
+            <option value="Noturno">Noturno</option>
+          </select>
+        </div>
+        <div class="upload-zone" onclick="document.getElementById('uploadZip').click()">
+          <input type="file" id="uploadZip" accept=".zip" onchange="handleZip(this)">
+          <div class="icon">📦</div>
+          <h4>Selecionar ZIP do Moodle</h4>
+          <p>NomeAluno_ID_assignsubmission_file/arquivo.pdf</p>
+        </div>
+        <div class="upload-status" id="statusZip"></div>
+      </div>
+      <div class="card-section">
+        <h3>3. Lista de Professores</h3>
+        <p>CSV com colunas: <code>nome,email</code> — senha gerada automaticamente.</p>
+        <div class="upload-zone" onclick="document.getElementById('uploadProfs').click()">
+          <input type="file" id="uploadProfs" accept=".csv" onchange="handleProfsCSV(this)">
+          <div class="icon">🎓</div>
+          <h4>Selecionar CSV de professores</h4>
+          <p>nome,email — senha gerada automaticamente</p>
+        </div>
+        <div class="upload-status" id="statusProfs"></div>
+        <div id="profsGeradosWrap" style="display:none;margin-top:1rem">
+          <div style="font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem">Credenciais Geradas</div>
+          <div id="profsGeradosTable"></div>
+          <button class="btn-save" style="margin-top:.875rem;width:100%" onclick="enviarCredenciaisProfessores()">📧 Enviar Credenciais por E-mail</button>
+        </div>
+      </div>
+    </div>
+    <div class="coord-panel" id="tab-atribuicoes">
+      <div class="card-section">
+        <h3>Atribuição de Trabalhos</h3>
+        <p>Cada trabalho deve ter exatamente 2 avaliadores.</p>
+        <div style="display:flex;gap:.75rem;align-items:center;margin-bottom:.75rem">
+          <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Turma:</label>
+          <select id="filtroAtribTurma" style="border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-family:inherit;font-size:.85rem;background:var(--bg);color:var(--text);outline:none" onchange="loadAtribTable()">
+            <option value="Todas">Todas</option>
+            <option value="Matutino">Matutino</option>
+            <option value="Noturno">Noturno</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Aluno</th><th>Turma</th><th>Código</th><th>Avaliador 1</th><th>Avaliador 2</th></tr></thead>
+          <tbody id="atribBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">Faça o upload dos dados primeiro.</td></tr></tbody></table>
+        </div>
+        <div class="actions"><button class="btn-save" onclick="salvarAtribuicoes()">💾 Salvar Atribuições</button></div>
+      </div>
+    </div>
+    <div class="coord-panel" id="tab-resultados">
+      <div class="card-section" style="margin-bottom:1rem">
+        <h3>Resultados Consolidados</h3>
+        <p>Médias calculadas automaticamente quando ambos os avaliadores finalizaram.</p>
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-top:.75rem">
+          <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Turma:</label>
+          <select id="filtroResultTurma" style="border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-family:inherit;font-size:.85rem;background:var(--bg);color:var(--text);outline:none">
+            <option value="Todas">Todas</option>
+            <option value="Matutino">Matutino</option>
+            <option value="Noturno">Noturno</option>
+          </select>
+          <button class="btn-primary" style="width:auto;padding:8px 18px" onclick="loadResultados()">🔄 Atualizar</button>
+          <button class="btn-save" style="padding:8px 18px" onclick="liberarResultados()">📧 Liberar e Enviar</button>
+          <button class="btn-secondary" style="padding:8px 18px;color:var(--accent);border-color:var(--accent)" onclick="exportarResultados()">⬇️ Exportar CSV</button>
+        </div>
+        <div id="liberarStatus" style="display:none;margin-top:.75rem;font-size:.8rem;padding:.6rem 1rem;border-radius:7px"></div>
+      </div>
+      <div class="results-grid" id="resultsGrid"><div class="loading">Clique em Atualizar para carregar.</div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script type="module">
+
 // ══ FIREBASE ══
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, update }
@@ -1184,5 +1541,7 @@ window.enviarCredenciaisProfessores = enviarCredenciaisProfessores;
 
 // ══ INIT ══
 initApp();
+
 </script>
 </body>
+</html>
