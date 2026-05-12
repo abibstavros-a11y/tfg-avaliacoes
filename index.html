@@ -27,7 +27,7 @@ header p{font-size:.75rem;opacity:.7;margin-top:1px;}
 .btn-logout:hover{background:rgba(255,255,255,.25);}
 .container{max-width:880px;margin:0 auto;padding:2rem 1.5rem 4rem;}
 .screen{display:none;}
-#loginScreen{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 64px);}
+#loginScreen.active{display:flex !important;align-items:center;justify-content:center;min-height:calc(100vh - 64px);}
 .login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.08);}
 .login-card h2{font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:.25rem;}
 .login-card>p{color:var(--muted);font-size:.875rem;margin-bottom:1.75rem;}
@@ -182,7 +182,7 @@ tr:last-child td{border-bottom:none;}
 <div class="container">
 
   <!-- LOGIN -->
-  <div id="loginScreen">
+  <div id="loginScreen" class="screen">
     <div class="login-card">
       <h2>Acesso ao Sistema</h2>
       <p>Entre com seu usuário e senha fornecidos pelo coordenador.</p>
