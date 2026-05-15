@@ -1183,9 +1183,9 @@ function handleProfsCSV(input) {
 
 async function enviarCredenciaisProfessores() {
   // EmailJS — configurar SERVICE_ID, TEMPLATE_ID e PUBLIC_KEY no guia
-  const EMAILJS_SERVICE  = "SEU_SERVICE_ID";
-  const EMAILJS_TEMPLATE = "SEU_TEMPLATE_CREDENCIAIS";
-  const EMAILJS_KEY      = "SUA_PUBLIC_KEY";
+  const EMAILJS_SERVICE  = "service_gt69etl";
+  const EMAILJS_TEMPLATE = "template_416jq3s";
+  const EMAILJS_KEY      = "bHMdJ6HGwW19IA86e";
   const SISTEMA_URL      = window.location.href;
 
   const profs = Object.entries(dbProfessores).filter(([,p])=>!p.isCoord);
@@ -1193,10 +1193,21 @@ async function enviarCredenciaisProfessores() {
 
   if (EMAILJS_SERVICE === "SEU_SERVICE_ID") {
     // Modo sem EmailJS: mostrar modal com instruções manuais
-    const linhas = profs.map(([id,p])=>
-      `${p.nome} | usuário: ${id} | senha: ${p.senha} | ${p.email}`
-    ).join("\n");
-    alert("EmailJS não configurado.\n\nCredenciais para enviar manualmente:\n\n" + linhas + "\n\nLink do sistema: " + SISTEMA_URL);
+    // Abrir Gmail para cada professor
+    profs.forEach(([id, p]) => {
+      const assunto = encodeURIComponent("Acesso ao Sistema de Avaliação TFG I — Suas credenciais");
+      const corpo = encodeURIComponent(
+        "Olá, " + p.nome + "!\n\n" +
+        "Você foi designado(a) como avaliador(a) no Sistema de Avaliação TFG I.\n\n" +
+        "Acesse o sistema com as credenciais abaixo:\n" +
+        "Link: " + SISTEMA_URL + "\n" +
+        "Usuário: " + id + "\n" +
+        "Senha: " + p.senha + "\n\n" +
+        "A avaliação é cega — você não terá acesso ao nome dos alunos.\n" +
+        "Em caso de dúvidas, entre em contato com o coordenador."
+      );
+      window.open("mailto:" + p.email + "?subject=" + assunto + "&body=" + corpo, "_blank");
+    });
     return;
   }
 
@@ -1331,9 +1342,9 @@ async function loadResultados() {
 }
 
 async function liberarResultados() {
-  const EMAILJS_SERVICE  = "SEU_SERVICE_ID";
-  const EMAILJS_TEMPLATE = "SEU_TEMPLATE_RESULTADO";
-  const EMAILJS_KEY      = "SUA_PUBLIC_KEY";
+  const EMAILJS_SERVICE  = "service_gt69etl";
+  const EMAILJS_TEMPLATE = "template_ujdpdtf";
+  const EMAILJS_KEY      = "bHMdJ6HGwW19IA86e";
   const SISTEMA_URL      = window.location.href;
 
   const alunos    = await dbRead("alunos")     || dbAlunos;
@@ -1377,17 +1388,25 @@ async function liberarResultados() {
 
   if (EMAILJS_SERVICE === "SEU_SERVICE_ID") {
     // Modo sem EmailJS: resumo para envio manual
-    const resumo = resultados.map(r =>
-      `${r.nome} (${r.email})\n  Nota: ${r.media}\n  Comentários: ${r.comentarios}`
-    ).join("\n\n---\n\n");
-    alert(
-      `${prontos.length} resultado(s) prontos para envio.\n` +
-      (pendentes.length ? `${pendentes.length} ainda pendente(s): ${pendentes.map(r=>r.nome).join(", ")}\n\n` : "\n") +
-      "Resultados para envio manual:\n\n" + resumo
-    );
+    // Abrir Gmail para cada aluno pronto
+    prontos.forEach(r => {
+      const assunto = encodeURIComponent("TFG I · Resultado da sua avaliação — UNIVALI 2026");
+      const corpo = encodeURIComponent(
+        "Olá, " + r.nome + "!\n\n" +
+        "Sua avaliação do TFG I foi concluída.\n\n" +
+        "Trabalho: " + r.codigo + "\n" +
+        "Avaliador 1: " + r.n1 + "\n" +
+        "Avaliador 2: " + r.n2 + "\n" +
+        "Média Final: " + r.media + "\n\n" +
+        "Comentários:\n" + r.comentarios + "\n\n" +
+        "Os avaliadores não são identificados.\n" +
+        "Em caso de dúvidas, entre em contato com o coordenador."
+      );
+      window.open("mailto:" + r.email + "?subject=" + assunto + "&body=" + corpo, "_blank");
+    });
     statusEl.style.background = "var(--ok-light)";
     statusEl.style.color = "var(--ok)";
-    statusEl.textContent = `✓ ${prontos.length} resultado(s) prontos · ${pendentes.length} pendente(s) · EmailJS não configurado — envio manual necessário`;
+    statusEl.textContent = `✓ ${prontos.length} e-mail(s) aberto(s) no cliente de e-mail · ${pendentes.length} pendente(s)`;
     return;
   }
 
@@ -1517,6 +1536,10 @@ async function novoSemestre() {
 
 // ── INIT ──
 (function init() {
+  // Inicializar EmailJS
+  if (window.emailjs) {
+    emailjs.init("bHMdJ6HGwW19IA86e");
+  }
   // Esconder todas as telas via style direto
   ["loginScreen","workListScreen","evalScreen","coordScreen"].forEach(id => {
     const el = document.getElementById(id);
