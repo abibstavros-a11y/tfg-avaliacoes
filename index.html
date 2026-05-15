@@ -606,9 +606,10 @@ async function dbRead(path) {
 }
 
 async function dbWrite(path, data) {
-  if (!window._firebaseReady) return false;
+  if (!window._firebaseReady) { console.warn("dbWrite: Firebase não pronto", path); return false; }
   try {
     await window._dbSet(window._dbRef(window._db, path), data);
+    console.log("dbWrite OK:", path);
     return true;
   } catch(e) { console.error("dbWrite", path, e); return false; }
 }
@@ -1211,9 +1212,20 @@ function handleProfsCSV(input) {
         </tbody>
       </table>`;
 
+    console.log("handleProfsCSV: dbWrite resultado:", ok, "Firebase pronto:", window._firebaseReady);
     const st = document.getElementById("statusProfs");
     st.className = "upload-status ok";
-    st.textContent = `✓ ${count} professor(es) carregado(s) · senhas geradas automaticamente${ok?" e salvo(s) no Firebase":" (Firebase não configurado)"}`;
+    st.textContent = `✓ ${count} professor(es) carregado(s) · senhas geradas automaticamente${ok?" e salvo(s) no Firebase":" (Firebase não configurado — tente novamente em 5s)"}`;
+    // Se não salvou, tentar novamente após 3 segundos
+    if (!ok && window._firebaseReady) {
+      setTimeout(async () => {
+        const ok2 = await dbWrite("professores", profs);
+        if (ok2) {
+          st.textContent = `✓ ${count} professor(es) salvos no Firebase (segunda tentativa)`;
+          console.log("Segunda tentativa OK");
+        }
+      }, 3000);
+    }
   };
   reader.readAsText(file);
 }
