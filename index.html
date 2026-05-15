@@ -39,6 +39,14 @@
   window._dbOnValue = onValue;
   window._firebaseReady = true;
   window.dispatchEvent(new Event("firebaseReady"));
+  // Atualizar banner de status
+  const statusEl = document.getElementById("firebaseStatus");
+  if (statusEl && statusEl.style.display !== "none") {
+    statusEl.style.background = "var(--ok-light)";
+    statusEl.style.color = "var(--ok)";
+    statusEl.textContent = "✅ Firebase conectado — pode fazer uploads!";
+    setTimeout(() => { statusEl.style.display = "none"; }, 3000);
+  }
 </script>
 
 <style>
@@ -386,6 +394,10 @@ tr:last-child td { border-bottom:none; }
     <h2 class="section-title">Painel do Coordenador</h2>
     <p class="section-sub">Gerencie uploads, atribuições e consulte resultados.</p>
 
+    <div id="firebaseStatus" style="display:none;padding:0.75rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:0.85rem;font-weight:500;text-align:center">
+      🔄 Conectando ao Firebase... aguarde antes de fazer uploads.
+    </div>
+
     <div class="coord-tabs">
       <div class="coord-tab active" onclick="switchTab('uploads')">📁 Uploads</div>
       <div class="coord-tab" onclick="switchTab('atribuicoes')">👥 Atribuições</div>
@@ -673,6 +685,21 @@ function afterLogin() {
   if (currentUser.isCoord) {
     showScreen("coordScreen");
     loadCoordData();
+    // Mostrar status do Firebase
+    const statusEl = document.getElementById("firebaseStatus");
+    if (statusEl) {
+      if (!window._firebaseReady) {
+        statusEl.style.display = "block";
+        statusEl.style.background = "var(--warn-light)";
+        statusEl.style.color = "var(--warn)";
+      } else {
+        statusEl.style.display = "block";
+        statusEl.style.background = "var(--ok-light)";
+        statusEl.style.color = "var(--ok)";
+        statusEl.textContent = "✅ Firebase conectado — pode fazer uploads!";
+        setTimeout(() => { statusEl.style.display = "none"; }, 3000);
+      }
+    }
   } else {
     showScreen("workListScreen");
     loadWorkList();
@@ -1086,6 +1113,11 @@ function switchTab(tab) {
 function handleAlunosCSV(input) {
   const file = input.files[0];
   if (!file) return;
+  if (!window._firebaseReady) {
+    alert("⚠️ Firebase ainda não conectou. Aguarde alguns segundos e tente novamente.");
+    input.value = "";
+    return;
+  }
   const reader = new FileReader();
   reader.onload = async e => {
     const lines = e.target.result.trim().split("\n").filter(l=>l.trim());
@@ -1129,6 +1161,11 @@ function gerarSenha(nome, email) {
 function handleProfsCSV(input) {
   const file = input.files[0];
   if (!file) return;
+  if (!window._firebaseReady) {
+    alert("⚠️ Firebase ainda não conectou. Aguarde alguns segundos e tente novamente.");
+    input.value = "";
+    return;
+  }
   const reader = new FileReader();
   reader.onload = async e => {
     const lines = e.target.result.trim().split("\n").filter(l=>l.trim());
