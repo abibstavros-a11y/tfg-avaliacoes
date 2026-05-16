@@ -779,8 +779,17 @@ async function loadWorkList() {
   }
 
   for (const tid of lista) {
-    const w = trab[tid];
-    if (!w) continue;
+    let w = trab[tid];
+    // Se trabalho não existe, criar a partir dos alunos
+    if (!w) {
+      const aid = "A" + tid.slice(1);
+      const a = alunos[aid];
+      if (a) {
+        w = { alunoId: aid, pdf: "", titulo: "Trabalho " + tid.replace("T","").padStart(3,"0"), codigo: a.codigo || tid };
+      } else {
+        continue;
+      }
+    }
     // Checar Firebase primeiro, fallback para localEvals (modo sem Firebase)
     const evFirebase = await dbRead(`avaliacoes/${tid}/${currentUser.id}`);
     const evLocal    = localEvals[tid] || {};
