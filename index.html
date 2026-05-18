@@ -1637,6 +1637,31 @@ async function loadCoordData() {
   dbAlunos = await dbRead("alunos") || dbAlunos;
   dbProfessores = await dbRead("professores") || dbProfessores;
   dbAtribuicoes = await dbRead("atribuicoes") || dbAtribuicoes;
+
+  // Mostrar botão de envio de credenciais se há professores no Firebase
+  const profs = Object.entries(dbProfessores).filter(([,p]) => !p.isCoord);
+  if (profs.length > 0) {
+    const wrap = document.getElementById("profsGeradosWrap");
+    const tbl = document.getElementById("profsGeradosTable");
+    if (wrap) wrap.style.display = "block";
+    if (tbl) tbl.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+        <thead><tr>
+          <th style="background:var(--surface2);padding:6px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:0.68rem;color:var(--muted)">Nome</th>
+          <th style="background:var(--surface2);padding:6px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:0.68rem;color:var(--muted)">Usuário</th>
+          <th style="background:var(--surface2);padding:6px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:0.68rem;color:var(--muted)">Senha</th>
+          <th style="background:var(--surface2);padding:6px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:0.68rem;color:var(--muted)">E-mail</th>
+        </tr></thead>
+        <tbody>
+          ${profs.map(([id,p])=>`<tr>
+            <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${p.nome}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid var(--border);font-family:monospace">${id}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid var(--border);font-family:monospace;color:var(--accent);font-weight:600">${p.senha}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid var(--border);color:var(--muted)">${p.email}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -1751,10 +1776,17 @@ async function salvarGithubToken() {
 
 // ── INIT ──
 (function init() {
-  // Inicializar EmailJS
-  if (window.emailjs) {
-    emailjs.init("bHMdJ6HGwW19IA86e");
+  // Inicializar EmailJS — aguardar se necessário
+  function initEmailJS() {
+    if (window.emailjs) {
+      emailjs.init("bHMdJ6HGwW19IA86e");
+      console.log("EmailJS inicializado OK");
+    } else {
+      console.warn("EmailJS não disponível ainda, tentando em 1s...");
+      setTimeout(initEmailJS, 1000);
+    }
   }
+  initEmailJS();
   // Esconder todas as telas via style direto
   ["loginScreen","workListScreen","evalScreen","coordScreen"].forEach(id => {
     const el = document.getElementById(id);
