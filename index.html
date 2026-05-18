@@ -1207,6 +1207,7 @@ async function processarZip(file, st) {
   const alunos = await dbRead("alunos") || dbAlunos;
   const nomeParaId = {};
   Object.entries(alunos).forEach(([aid, a]) => { nomeParaId[a.nome.toLowerCase().trim()] = aid; });
+  console.log("Alunos carregados:", Object.keys(nomeParaId).length, Object.keys(nomeParaId).slice(0,3));
 
   let processados = 0, erros = 0;
   const trabalhos = {};
@@ -1215,11 +1216,21 @@ async function processarZip(file, st) {
     if (zipEntry.dir || !zipPath.toLowerCase().endsWith(".pdf")) continue;
     const partes = zipPath.split("/");
     if (partes.length < 2) continue;
-    const nomePasta = partes[0].replace(/_\d+_assignsubmission_file.*/, "").replace(/_/g, " ").trim().toLowerCase();
+
+    // Encontrar a pasta que contém "_assignsubmission_file"
+    let nomePasta = null;
+    for (const parte of partes) {
+      if (parte.includes("_assignsubmission_file") || /^.+_\d+_/.test(parte)) {
+        nomePasta = parte.replace(/_\d+_assignsubmission_file.*/, "").replace(/_/g, " ").trim().toLowerCase();
+        break;
+      }
+    }
+    if (!nomePasta) { erros++; console.warn("Pasta não identificada:", zipPath); continue; }
+    console.log("nomePasta extraído:", nomePasta);
 
     let aid = null;
     for (const [nome, id] of Object.entries(nomeParaId)) {
-      if (nome.includes(nomePasta) || nomePasta.includes(nome) ||
+      if (nome === nomePasta || nome.includes(nomePasta) || nomePasta.includes(nome) ||
           nome.split(" ").some(p => p.length > 3 && nomePasta.includes(p))) {
         aid = id; break;
       }
