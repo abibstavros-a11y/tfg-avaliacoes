@@ -1241,6 +1241,7 @@ async function processarZip(file, st) {
     st.textContent = `📤 Enviando ${tid}... (${processados+1})`;
     try {
       const base64 = await zipEntry.async("base64");
+      await new Promise(r => setTimeout(r, 300)); // evitar rate limit
       const ok = await uploadPdfGitHub(`pdfs/${tid}.pdf`, base64);
       if (ok) {
         const pdfUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/pdfs/${tid}.pdf`;
