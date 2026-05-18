@@ -849,7 +849,9 @@ async function openWork(tid) {
 
   // PDF
   if (w.pdf) {
-    document.getElementById("pdfFrame").src = w.pdf;
+    // Usar Google Docs Viewer para exibir PDF do GitHub dentro do iframe
+    const pdfUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(w.pdf)}&embedded=true`;
+    document.getElementById("pdfFrame").src = pdfUrl;
     document.getElementById("pdfFrame").classList.remove("collapsed");
     document.querySelector(".pdf-toggle").textContent = "Recolher";
   } else {
@@ -1229,12 +1231,21 @@ async function processarZip(file, st) {
     console.log("nomePasta extraído:", nomePasta);
 
     let aid = null;
+    let bestScore = 0;
     for (const [nome, id] of Object.entries(nomeParaId)) {
-      if (nome === nomePasta || nome.includes(nomePasta) || nomePasta.includes(nome) ||
-          nome.split(" ").some(p => p.length > 3 && nomePasta.includes(p))) {
-        aid = id; break;
+      let score = 0;
+      if (nome === nomePasta) { score = 100; }
+      else if (nome.includes(nomePasta) || nomePasta.includes(nome)) { score = 80; }
+      else {
+        // Contar palavras em comum (priorizando palavras longas)
+        const palavrasNome = nome.split(" ").filter(p => p.length > 3);
+        const palavrasPasta = nomePasta.split(" ").filter(p => p.length > 3);
+        const comuns = palavrasNome.filter(p => palavrasPasta.includes(p));
+        score = comuns.length * 10;
       }
+      if (score > bestScore) { bestScore = score; aid = id; }
     }
+    if (bestScore < 10) aid = null; // mínimo de match
     if (!aid) { erros++; console.warn("Aluno não encontrado:", nomePasta); continue; }
 
     const tid = "T" + aid.slice(1);
