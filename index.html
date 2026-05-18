@@ -1172,8 +1172,25 @@ function handleZip(input) {
   if (!file) return;
   const st = document.getElementById("statusZip");
   st.className = "upload-status ok";
-  st.textContent = "📦 Processando ZIP...";
-  processarZip(file, st);
+  st.textContent = "📦 Carregando bibliotecas...";
+
+  // Verificar se JSZip está disponível, se não, carregar dinamicamente
+  if (!window.JSZip) {
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+    script.onload = () => {
+      st.textContent = "📦 Processando ZIP...";
+      processarZip(file, st);
+    };
+    script.onerror = () => {
+      st.className = "upload-status err";
+      st.textContent = "✗ Erro ao carregar JSZip. Verifique sua conexão.";
+    };
+    document.head.appendChild(script);
+  } else {
+    st.textContent = "📦 Processando ZIP...";
+    processarZip(file, st);
+  }
 }
 
 // GitHub config — token salvo no Firebase pelo coordenador
@@ -1379,21 +1396,34 @@ async function enviarCredenciaisProfessores() {
     return;
   }
 
-  // Com EmailJS configurado
-  if (!window.emailjs) { showToast("⚠️ EmailJS não carregado."); return; }
-  emailjs.init(EMAILJS_KEY);
-  let enviados = 0;
-  for (const [id, p] of profs) {
-    try {
-      await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
-        to_name: p.nome, to_email: p.email,
-        usuario: id, senha: p.senha, link: SISTEMA_URL
-      });
-      enviados++;
-    } catch(err) { console.error("Erro ao enviar para", p.email, err); }
+  // Tentar EmailJS, fallback para mailto
+  if (window.emailjs) {
+    emailjs.init(EMAILJS_KEY);
+    let enviados = 0;
+    for (const [id, p] of profs) {
+      try {
+        await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+          to_name: p.nome, to_email: p.email,
+          usuario: id, senha: p.senha, link: SISTEMA_URL
+        });
+        enviados++;
+      } catch(err) {
+        console.error("EmailJS erro:", err);
+        const assunto = encodeURIComponent("Acesso ao Sistema TFG I");
+        const corpo = encodeURIComponent("Ola, " + p.nome + "!\n\nLink: " + SISTEMA_URL + "\nUsuario: " + id + "\nSenha: " + p.senha);
+        window.open("mailto:" + p.email + "?subject=" + assunto + "&body=" + corpo, "_blank");
+      }
+    }
+    if (enviados > 0) showToast("Credenciais enviadas para " + enviados + " professor(es)!");
+    await dbMerge("professores", Object.fromEntries(profs.map(([id,p])=>[id,{...p,credEnviado:true}])));
+  } else {
+    profs.forEach(([id, p]) => {
+      const assunto = encodeURIComponent("Acesso ao Sistema TFG I");
+      const corpo = encodeURIComponent("Ola, " + p.nome + "!\n\nLink: " + SISTEMA_URL + "\nUsuario: " + id + "\nSenha: " + p.senha);
+      window.open("mailto:" + p.email + "?subject=" + assunto + "&body=" + corpo, "_blank");
+    });
+    showToast("E-mails abertos no Gmail!");
   }
-  showToast(`✅ Credenciais enviadas para ${enviados} professor(es)!`);
-  await dbMerge("professores", Object.fromEntries(profs.map(([id,p])=>[id,{...p,credEnviado:true}])));
 }
 
 // ══════════════════════════════════════════════════════
