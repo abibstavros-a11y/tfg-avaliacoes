@@ -1582,6 +1582,9 @@ async function liberarResultados() {
     });
   });
 
+  console.log("Total resultados:", resultados.length);
+  console.log("Prontos:", resultados.filter(r=>r.pronto).map(r=>r.nome));
+  console.log("Amostra T001:", JSON.stringify(resultados[0]));
   const prontos   = resultados.filter(r=>r.pronto);
   const pendentes = resultados.filter(r=>!r.pronto);
 
