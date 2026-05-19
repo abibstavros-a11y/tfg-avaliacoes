@@ -1895,8 +1895,18 @@ async function verificarResultadoPublico() {
 // ── INIT ──
 (function init() {
   // Verificar se é acesso público de resultado
-  verificarResultadoPublico().then(isPublico => {
-    if (isPublico) return; // mostrou ficha, não continuar
+  // Aguardar Firebase antes de verificar resultado público
+  async function iniciarApp() {
+    if (!window._firebaseReady) {
+      await new Promise(resolve => {
+        const chk = setInterval(() => {
+          if (window._firebaseReady) { clearInterval(chk); resolve(); }
+        }, 200);
+        setTimeout(() => { clearInterval(chk); resolve(); }, 5000);
+      });
+    }
+    const isPublico = await verificarResultadoPublico();
+    if (isPublico) return;
     
     // Inicializar EmailJS — aguardar se necessário
     function initEmailJS() {
@@ -1920,7 +1930,8 @@ async function verificarResultadoPublico() {
     login.classList.add("active");
     login.style.display = "flex";
   }
-  }); // fim do then
+  } // fim do if isPublico
+  iniciarApp();
 })();
 </script>
 </body>
