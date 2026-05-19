@@ -1618,6 +1618,7 @@ async function liberarResultados() {
   let enviados = 0;
   for (const r of prontos) {
     try {
+      console.log("Enviando resultado:", EMAILJS_SERVICE, EMAILJS_TEMPLATE, r.email);
       await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
         to_name: r.nome, to_email: r.email,
         codigo: r.codigo, nota_final: r.media,
