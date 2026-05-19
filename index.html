@@ -1573,7 +1573,7 @@ async function liberarResultados() {
     if (ev2?.generalComment) comentarios.push("Avaliador 2: " + ev2.generalComment);
 
     resultados.push({
-      nome: a.nome, email: a.email, codigo: a.codigo,
+      nome: a.nome, email: a.email, codigo: a.codigo, tid,
       n1: n1?.toFixed(1) ?? "Pendente",
       n2: n2?.toFixed(1) ?? "Pendente",
       media: media?.toFixed(1) ?? "Aguardando ambas as avaliações",
@@ -1628,12 +1628,16 @@ async function liberarResultados() {
   let enviados = 0;
   for (const r of prontos) {
     try {
-      console.log("Enviando resultado:", EMAILJS_SERVICE, EMAILJS_TEMPLATE, r.email);
+      // Gerar token único para este aluno
+      const token = gerarToken();
+      await dbWrite("tokens/" + r.tid, token);
+      const linkResultado = SISTEMA_URL.split("?")[0] + "?resultado=" + r.tid + "&token=" + token;
+      console.log("Enviando resultado:", EMAILJS_SERVICE, EMAILJS_TEMPLATE, r.email, linkResultado);
       await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
         to_name: r.nome, to_email: r.email,
         codigo: r.codigo, nota_final: r.media,
         avaliador1: r.n1, avaliador2: r.n2,
-        comentarios: r.comentarios, link: SISTEMA_URL
+        comentarios: r.comentarios, link: linkResultado
       });
       enviados++;
     } catch(err) { console.error("Erro ao enviar para", r.email, err); }
@@ -1788,10 +1792,114 @@ async function salvarGithubToken() {
   document.getElementById("githubTokenInput").value = "";
 }
 
+
+// ══ FICHA PÚBLICA DO ALUNO ══
+function gerarToken() {
+  return Math.random().toString(36).substr(2,9) + Date.now().toString(36);
+}
+
+function montarFichaTexto(ev, titulo) {
+  if (!ev) return titulo + ": Avaliação pendente.\n";
+  let ficha = titulo + "\n" + "─".repeat(40) + "\n";
+  CAMPOS.forEach(campo => {
+    const campoEv = ev[campo.id] || {};
+    let pts = 0, count = 0, comps = [];
+    campo.criterios.forEach(c => {
+      const v = campoEv[c.id];
+      if (v !== undefined) { pts += v.pts; count++; }
+      const ck = campo.id + "_" + c.id + "_comment";
+      if (ev[ck]) comps.push("  " + c.nome + ": " + ev[ck]);
+    });
+    const nota = count > 0 ? ((pts/(campo.criterios.length*2.5))*10).toFixed(1) : "—";
+    ficha += campo.num + " — " + campo.titulo + ": " + nota + "/10\n";
+    if (comps.length) ficha += comps.join("\n") + "\n";
+  });
+  const tEv = (ev.transversal||{}).org;
+  if (tEv) {
+    ficha += "Organização Geral: " + ((tEv.pts/2.5)*10).toFixed(1) + "/10\n";
+    const tc = ev["transversal_org_comment"];
+    if (tc) ficha += "  " + tc + "\n";
+  }
+  if (ev.generalComment) ficha += "\nComentário Geral:\n" + ev.generalComment + "\n";
+  return ficha;
+}
+
+async function verificarResultadoPublico() {
+  const params = new URLSearchParams(window.location.search);
+  const tid    = params.get("resultado");
+  const token  = params.get("token");
+  if (!tid || !token) return false;
+
+  // Buscar token salvo no Firebase
+  const tokenSalvo = await dbRead("tokens/" + tid);
+  if (!tokenSalvo || tokenSalvo !== token) return false;
+
+  // Buscar dados
+  const alunos    = await dbRead("alunos")     || {};
+  const atrib     = await dbRead("atribuicoes") || {};
+  const avaliacoes= await dbRead("avaliacoes")  || {};
+
+  // Encontrar aluno pelo tid
+  const aid = "A" + tid.slice(1);
+  const aluno = alunos[aid];
+  if (!aluno) return false;
+
+  const at  = atrib[tid] || {};
+  const ev1 = at.av1 ? (avaliacoes[tid]||{})[at.av1] : null;
+  const ev2 = at.av2 ? (avaliacoes[tid]||{})[at.av2] : null;
+  const n1  = ev1 ? calcTotalFromEv(ev1) : null;
+  const n2  = ev2 ? calcTotalFromEv(ev2) : null;
+  const media = (n1!==null && n2!==null) ? ((n1+n2)/2).toFixed(1) : "—";
+
+  const ficha1 = montarFichaTexto(ev1, "Avaliação 1");
+  const ficha2 = montarFichaTexto(ev2, "Avaliação 2");
+
+  // Mostrar página de resultado público
+  document.body.innerHTML = `
+    <div style="font-family:'Source Sans 3',sans-serif;max-width:800px;margin:0 auto;padding:2rem;background:#f7f5f2;min-height:100vh">
+      <div style="background:#1a3a2a;color:white;padding:1.5rem 2rem;border-radius:12px;margin-bottom:1.5rem">
+        <h1 style="font-family:'Playfair Display',serif;font-size:1.3rem;margin:0">Sistema de Avaliação — TFG I</h1>
+        <p style="opacity:0.7;font-size:0.85rem;margin:4px 0 0">Resultado da Avaliação</p>
+      </div>
+      <div style="background:white;border:1px solid #e0dbd3;border-radius:12px;padding:1.5rem;margin-bottom:1rem">
+        <h2 style="font-family:'Playfair Display',serif;font-size:1.1rem;margin:0 0 0.5rem">${aluno.nome}</h2>
+        <p style="color:#7a7570;font-size:0.85rem;margin:0">${aluno.codigo} · ${aluno.turma||""}</p>
+        <div style="display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap">
+          <div style="text-align:center;padding:0.75rem 1.5rem;background:#f7f5f2;border-radius:8px;border:1px solid #e0dbd3">
+            <div style="font-size:0.7rem;color:#7a7570;text-transform:uppercase;letter-spacing:0.07em">Avaliador 1</div>
+            <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:#1a3a2a">${n1!==null?n1.toFixed(1):"—"}</div>
+          </div>
+          <div style="text-align:center;padding:0.75rem 1.5rem;background:#f7f5f2;border-radius:8px;border:1px solid #e0dbd3">
+            <div style="font-size:0.7rem;color:#7a7570;text-transform:uppercase;letter-spacing:0.07em">Avaliador 2</div>
+            <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:#1a3a2a">${n2!==null?n2.toFixed(1):"—"}</div>
+          </div>
+          <div style="text-align:center;padding:0.75rem 1.5rem;background:#1a3a2a;border-radius:8px">
+            <div style="font-size:0.7rem;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.07em">Média Final</div>
+            <div style="font-family:'Playfair Display',serif;font-size:1.8rem;color:white">${media}</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:white;border:1px solid #e0dbd3;border-radius:12px;padding:1.5rem;margin-bottom:1rem">
+        <h3 style="font-size:0.85rem;font-weight:700;color:#7a7570;text-transform:uppercase;letter-spacing:0.07em;margin:0 0 1rem">Ficha Detalhada — Avaliação 1</h3>
+        <pre style="font-family:'Source Sans 3',sans-serif;font-size:0.85rem;white-space:pre-wrap;color:#1c1a17;margin:0">${ficha1}</pre>
+      </div>
+      <div style="background:white;border:1px solid #e0dbd3;border-radius:12px;padding:1.5rem">
+        <h3 style="font-size:0.85rem;font-weight:700;color:#7a7570;text-transform:uppercase;letter-spacing:0.07em;margin:0 0 1rem">Ficha Detalhada — Avaliação 2</h3>
+        <pre style="font-family:'Source Sans 3',sans-serif;font-size:0.85rem;white-space:pre-wrap;color:#1c1a17;margin:0">${ficha2}</pre>
+      </div>
+      <p style="text-align:center;color:#7a7570;font-size:0.75rem;margin-top:1.5rem">Os avaliadores não são identificados. UNIVALI · TFG I · ${new Date().getFullYear()}</p>
+    </div>`;
+  return true;
+}
+
 // ── INIT ──
 (function init() {
-  // Inicializar EmailJS — aguardar se necessário
-  function initEmailJS() {
+  // Verificar se é acesso público de resultado
+  verificarResultadoPublico().then(isPublico => {
+    if (isPublico) return; // mostrou ficha, não continuar
+    
+    // Inicializar EmailJS — aguardar se necessário
+    function initEmailJS() {
     if (window.emailjs) {
       emailjs.init("bHMdJ6HGwW19IA86e");
       console.log("EmailJS inicializado OK");
@@ -1812,6 +1920,7 @@ async function salvarGithubToken() {
     login.classList.add("active");
     login.style.display = "flex";
   }
+  }); // fim do then
 })();
 </script>
 </body>
