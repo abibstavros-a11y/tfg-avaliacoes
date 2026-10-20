@@ -193,10 +193,20 @@ header p { font-size:0.75rem; opacity:0.7; margin-top:1px; }
 .comment-area textarea { width:100%; border:1px solid #e0b0b0; border-radius:7px; padding:9px 11px; font-family:inherit; font-size:0.85rem; resize:vertical; min-height:72px; outline:none; background:var(--danger-light); color:var(--text); transition:border-color 0.2s; }
 .comment-area textarea:focus { border-color:var(--danger); }
 
-/* TRANSVERSAL */
-.transversal-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:1rem; overflow:hidden; }
-.transversal-header { padding:0.875rem 1.25rem; border-bottom:1px solid var(--border); background:#f8f5ee; display:flex; align-items:center; justify-content:space-between; }
-.transversal-header .campo-title { color:var(--accent2); }
+/* NOTA INTRO (professor only) */
+.nota-intro { background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--accent2); border-radius:10px; padding:1.1rem 1.25rem; margin-bottom:1.25rem; }
+.nota-intro p { font-size:0.85rem; color:var(--text); line-height:1.65; margin-bottom:0.6rem; }
+.nota-intro p:last-child { margin-bottom:0; }
+
+/* PERGUNTAS ORIENTADORAS */
+.perguntas-box { background:var(--bg); border-left:3px solid var(--border2); border-radius:0 6px 6px 0; padding:0.7rem 0.9rem; margin-bottom:0.8rem; }
+.perguntas-box .bloco-label { font-size:0.72rem; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.06em; margin-top:0.5rem; margin-bottom:0.2rem; }
+.perguntas-box .bloco-label:first-child { margin-top:0; }
+.perguntas-box .pergunta-item { font-size:0.8rem; color:var(--muted); line-height:1.55; padding:0.15rem 0 0.15rem 0.5rem; border-left:2px solid transparent; margin-bottom:0.15rem; }
+.perguntas-box .pergunta-item .rotulo { font-weight:600; color:var(--text); }
+
+/* CAMPO ITENS (sub-header) */
+.campo-itens { font-size:0.72rem; color:var(--muted); font-style:italic; margin-top:2px; }
 
 /* GENERAL / AJUSTE */
 .card-section { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.1rem 1.25rem; margin-bottom:1rem; }
@@ -340,28 +350,6 @@ tr:last-child td { border-bottom:none; }
 
     <div class="score-summary" id="scoreSummary"></div>
     <div id="camposContainer"></div>
-
-    <!-- Transversal -->
-    <div class="transversal-card">
-      <div class="transversal-header">
-        <div>
-          <span class="campo-num">Transversal</span>
-          <span class="campo-title">Organização Geral do Documento</span>
-        </div>
-        <span class="campo-score-badge" id="badge-transversal">—</span>
-      </div>
-      <div class="campo-body">
-        <div class="criterio-block">
-          <div class="criterio-label">Organização</div>
-          <div class="orientacao">O documento respeita os limites de palavras de cada campo? A linguagem é acadêmica e adequada? Cada campo cumpre sua função sem repetir conteúdo de outros? A formatação é consistente ao longo do documento?</div>
-          <div class="nivel-selector" data-campo="transversal" data-criterio="org"></div>
-          <div class="comment-area" id="ca-transversal-org">
-            <label>⚠ Comentário obrigatório — nota abaixo de 7</label>
-            <textarea data-campo="transversal" data-criterio="org" placeholder="Indique os problemas de organização identificados..."></textarea>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <div class="card-section">
       <h3>Comentário Geral</h3>
@@ -540,62 +528,76 @@ const NIVEIS = [
   { nivel:5, nome:"Pleno", pts:2.5 }
 ];
 
+const NOTA_INTRO = [
+  "A AC3 avalia a construção teórica da proposta de TFG: em que campo de conhecimento ela se apoia, que lacuna pretende enfrentar e com quais conceitos se sustenta, além da pertinência dos itens e da clareza do documento. Método e sítio são cobrados nas ACs seguintes.",
+  "Cada critério traz perguntas orientadoras. Elas auxiliam a leitura e não têm a intenção de ser uma lista a conferir. Sugerimos tomar o Adequado como referência: o trabalho responde ao que o critério pede, com fragilidades que não comprometem o argumento. Bom e Pleno reconhecem domínio e argumento próprio. Parcial e Insuficiente indicam lacunas que comprometem o critério. A posição marcada na escala expressa seu julgamento do conjunto, e o comentário registra o que a motivou. O comentário é obrigatório sempre que o critério for marcado como Parcial, Insuficiente ou Não entrega."
+];
+
 const CAMPOS = [
-  { id:"c1", num:"Campo 1", titulo:"Delimitação do Tema e Fenômeno",
-    criterios:[
-      { id:"clareza", nome:"Clareza", critico:true,
-        orientacao:"O tema está delimitado com precisão dentro de um campo reconhecível? O fenômeno está distinto do tema e nomeado com precisão? A problemática emerge do estado da arte e aponta uma lacuna específica? A pergunta de pesquisa é distinta da problemática — enquanto uma descreve o problema, a outra o operacionaliza em questão investigável?" },
-      { id:"fund", nome:"Fundamentação", critico:true,
-        orientacao:"O contexto temático é sustentado por referências acadêmicas qualificadas — artigos de periódicos reconhecidos e/ou obras consolidadas? A lacuna identificada na problemática está ancorada na literatura, não apenas na percepção do autor?" }
-    ]},
-  { id:"c2", num:"Campo 2", titulo:"Justificativa",
-    criterios:[
-      { id:"clareza", nome:"Clareza", critico:true,
-        orientacao:"Relevância social e contribuição técnica/científica estão claramente distinguidas? A relevância social identifica com precisão quais grupos ou contextos são afetados e de que forma? A contribuição técnica explicita como o TFG avança em relação ao que já foi produzido — preenchendo lacuna, propondo abordagem nova ou articulando campos ainda não conectados?" },
-      { id:"fund", nome:"Fundamentação", critico:true,
-        orientacao:"A relevância social é sustentada por dados de fontes confiáveis — institutos de pesquisa, organismos internacionais, legislação, relatórios técnicos? A contribuição técnica é fundamentada em referências acadêmicas que contextualizam o estado atual do conhecimento?" }
-    ]},
-  { id:"c3a", num:"Campo 3A", titulo:"Objetivo Geral",
-    criterios:[
-      { id:"clareza", nome:"Clareza", critico:true,
-        orientacao:"O objetivo é enunciado em frase única e direta com verbo de ação projetual no infinitivo — projetar, propor, desenvolver, elaborar? Nomeia um produto arquitetônico ou urbanístico concreto? Define escala ou recorte territorial que decorre do fenômeno declarado? Está contido — sem estratégias, dimensões programáticas ou etapas que pertenceriam aos objetivos específicos?" }
-    ]},
-  { id:"c3b", num:"Campo 3B", titulo:"Objetivos Específicos",
-    criterios:[
-      { id:"clareza", nome:"Clareza", critico:true,
-        orientacao:"Cada objetivo é um enunciado distinto com verbo no infinitivo que nomeia o que o TFG produz ou demonstra em relação ao fenômeno e ao território? Estão ausentes os desvios clássicos: objetivos de pesquisa disfarçados (\"revisar\", \"conhecer\"); estratégias projetuais disfarçadas (\"aplicar biofilia\"); programa disfarçado de objetivo (\"prever espaços de convivência\")?" },
-      { id:"coerencia", nome:"Coerência", critico:true,
-        orientacao:"Os específicos somados constroem e justificam o objetivo geral — nenhum aponta direção diferente? São distintos entre si, sem sobreposição significativa, cada um cobrindo uma dimensão diferente do percurso projetual?" }
-    ]},
-  { id:"c4", num:"Campo 4", titulo:"Revisão de Literatura",
-    criterios:[
-      { id:"clareza", nome:"Clareza", critico:true,
-        orientacao:"As abordagens estão organizadas por eixos temáticos, não por autor em sequência? Convergências e tensões entre abordagens estão explicitadas? A lacuna que justifica o TFG está claramente apontada? Os conceitos discutidos são teóricos — explicam o fenômeno?",
-        atencao:"Referencial teórico não se confunde com referencial projetual — estratégias, sistemas construtivos e programas não constituem revisão de literatura." },
-      { id:"fund", nome:"Fundamentação", critico:true,
-        orientacao:"As referências são acadêmicas e qualificadas? Há equilíbrio entre clássicos e recentes? Quando o fenômeno tem dimensão técnica, a literatura técnica correspondente está presente? Toda afirmação sobre o estado da arte tem referência identificada?" }
-    ]},
-  { id:"c5", num:"Campo 5", titulo:"Conceitos Estruturantes",
-    criterios:[
-      { id:"clareza", nome:"Clareza", critico:true,
-        orientacao:"Entre 3 e 5 conceitos estão presentes? Cada conceito é definido com precisão a partir de autores — não de senso comum? Os conceitos são teóricos — explicam, interpretam ou problematizam o fenômeno? A seleção decorre das abordagens identificadas na revisão de literatura?",
-        atencao:"Os mesmos desvios do Campo 4 se aplicam aqui — conceitos operativos de projeto, estratégias projetuais e itens de programa não constituem conceitos estruturantes." },
-      { id:"fund", nome:"Fundamentação", critico:true,
-        orientacao:"Cada conceito está definido a partir de referências acadêmicas qualificadas? A perspectiva teórica específica dentro da qual cada conceito será trabalhado está explicitada? Os conceitos têm continuidade com as abordagens identificadas no Campo 4?" }
-    ]},
-  { id:"c6", num:"Campo 6", titulo:"Síntese Interpretativa e Diagrama",
-    criterios:[
-      { id:"coerencia-sintese", nome:"Coerência — Síntese", critico:true,
-        orientacao:"A síntese produz argumento novo — não repete as definições do Campo 5 nem resume o Campo 4? Os conceitos estão articulados entre si com relações explicitadas — complementaridade, tensão, hierarquia? O fechamento em direção ao fenômeno e à pergunta de pesquisa está presente e identificável?" },
-      { id:"coerencia-diag", nome:"Coerência — Diagrama", critico:true,
-        orientacao:"Os nós correspondem aos conceitos do Campo 5? As linhas de ligação têm verbos de transição que explicitam a natureza da relação entre conceitos? A hierarquia entre conceitos está visualmente legível? O fenômeno está presente e identificável no diagrama?",
-        atencao:"O diagrama não é mapa mental livre nem fluxograma de etapas do projeto — é a expressão gráfica do marco teórico construído na síntese." }
-    ]},
-  { id:"c7", num:"Campo 7", titulo:"Referências Bibliográficas",
-    criterios:[
-      { id:"fund", nome:"Fundamentação", critico:true,
-        orientacao:"Todas as referências citadas no corpo do texto estão listadas? Apenas as efetivamente utilizadas aparecem — sem referências por prestígio? O conjunto é academicamente qualificado? A formatação segue a NBR 6023/24 de forma consistente? Há correspondência entre o sistema autor-data no corpo do texto e a lista final?" }
-    ]}
+  {
+    id: "c1", num: "C1",
+    titulo: "Profundidade da fundamentação teórica",
+    peso: 4.0, itens: "Itens 4, 5 e 2(b)",
+    criterios: [{
+      id: "fundamentacao", nome: "Fundamentação teórica", critico: true, peso: 4.0,
+      descricao: "Revisão de literatura, conceitos e contribuição técnico-científica frente ao que a literatura já produziu.",
+      perguntas: [
+        { bloco:"Revisão de literatura (item 4)", rotulo:"Situar", texto:"A partir de um panorama do tema, apresenta abordagens sobre o fenômeno do aluno, organizadas por linha de pensamento e não autor por autor?" },
+        { bloco:"Revisão de literatura (item 4)", rotulo:"Abrir a lacuna", texto:"Explicita convergências ou tensões e mostra onde as abordagens ainda deixam espaço para desenvolver o TFG?" },
+        { bloco:"Revisão de literatura (item 4)", rotulo:"Sustentar os conceitos", texto:"Apoia o tema numa abordagem, ou no cruzamento delas, e dali extrai os conceitos estruturantes?" },
+        { bloco:"Conceitos estruturantes (item 5)", rotulo:"Definir", texto:"Apresenta de três a cinco conceitos, cada um definido a partir de autores, e não do senso comum nem de estratégias ou programa de projeto?" },
+        { bloco:"Conceitos estruturantes (item 5)", rotulo:"Explicar o fenômeno", texto:"Os conceitos ajudam a compreender o fenômeno, e não apenas a nomear o tema?" },
+        { bloco:"Contribuição técnico-científica (item 2b)", rotulo:"Situar a contribuição", texto:"A justificativa indica o que o TFG acrescenta ao que a literatura revisada já produziu?" }
+      ],
+      orientacao: "Revisão de literatura (item 4). Situar: a partir de um panorama do tema, apresenta abordagens sobre o fenômeno do aluno, organizadas por linha de pensamento e não autor por autor? Abrir a lacuna: explicita convergências ou tensões e mostra onde as abordagens ainda deixam espaço para desenvolver o TFG? Sustentar os conceitos: apoia o tema numa abordagem, ou no cruzamento delas, e dali extrai os conceitos estruturantes? Conceitos estruturantes (item 5). Definir: apresenta de três a cinco conceitos, cada um definido a partir de autores, e não do senso comum nem de estratégias ou programa de projeto? Explicar o fenômeno: os conceitos ajudam a compreender o fenômeno, e não apenas a nomear o tema? Contribuição técnico-científica (item 2b). Situar a contribuição: a justificativa indica o que o TFG acrescenta ao que a literatura revisada já produziu?"
+    }]
+  },
+  {
+    id: "c2", num: "C2",
+    titulo: "Pertinência de cada item frente à sua categoria",
+    peso: 2.0, itens: "Todos os itens, pela forma",
+    criterios: [{
+      id: "pertinencia", nome: "Pertinência dos itens", critico: true, peso: 2.0,
+      descricao: "Cada item é o tipo certo de conteúdo para a sua categoria. A profundidade é avaliada no C1 e no C3.",
+      perguntas: [
+        { rotulo:"Delimitar", texto:"A delimitação apresenta o problema investigado e o campo temático, distinguindo tema de fenômeno?" },
+        { rotulo:"Justificar", texto:"A justificativa apresenta, separadamente, a relevância do tema e a contribuição técnico-científica?" },
+        { rotulo:"Objetivar", texto:"O objetivo geral é projetual e os específicos são distintos entre si, sem estratégias, programa ou etapas de pesquisa no lugar de objetivos?" },
+        { rotulo:"Cumprir a função", texto:"Cada item cumpre sua função sem repetir o conteúdo de outro, e as referências listadas são apenas as usadas no texto?" }
+      ],
+      orientacao: "Delimitar: a delimitação apresenta o problema investigado e o campo temático, distinguindo tema de fenômeno? Justificar: a justificativa apresenta, separadamente, a relevância do tema e a contribuição técnico-científica? Objetivar: o objetivo geral é projetual e os específicos são distintos entre si, sem estratégias, programa ou etapas de pesquisa no lugar de objetivos? Cumprir a função: cada item cumpre sua função sem repetir o conteúdo de outro, e as referências listadas são apenas as usadas no texto?"
+    }]
+  },
+  {
+    id: "c3", num: "C3",
+    titulo: "Coerência na construção do marco teórico",
+    peso: 3.0, itens: "Itens 5, 6 e 7",
+    criterios: [{
+      id: "coerencia", nome: "Marco teórico", critico: true, peso: 3.0,
+      descricao: "Conceitos articulados entre si no texto, na síntese e no diagrama.",
+      perguntas: [
+        { rotulo:"Articular", texto:"O texto mostra como os conceitos se relacionam, por complementaridade, tensão ou hierarquia, e não apenas os apresenta lado a lado?" },
+        { rotulo:"Sintetizar", texto:"A síntese produz argumento próprio sobre como os conceitos orientam a investigação e dialogam com o problema, sem repetir as definições?" },
+        { rotulo:"Diagramar", texto:"O diagrama traz os mesmos conceitos do texto, com relações explícitas nomeadas por verbos de ligação?" }
+      ],
+      orientacao: "Articular: o texto mostra como os conceitos se relacionam, por complementaridade, tensão ou hierarquia, e não apenas os apresenta lado a lado? Sintetizar: a síntese produz argumento próprio sobre como os conceitos orientam a investigação e dialogam com o problema, sem repetir as definições? Diagramar: o diagrama traz os mesmos conceitos do texto, com relações explícitas nomeadas por verbos de ligação?"
+    }]
+  },
+  {
+    id: "c4", num: "C4",
+    titulo: "Clareza na apresentação da proposta de projeto de TFG",
+    peso: 1.0, itens: "Documento como um todo",
+    criterios: [{
+      id: "clareza", nome: "Clareza da proposta", critico: true, peso: 1.0,
+      descricao: "O documento, lido como um todo, traduz a proposta de projeto de forma legível.",
+      perguntas: [
+        { rotulo:"Ler de uma vez", texto:"O documento se compreende numa leitura, sem que seja preciso voltar e reler para reconstruir o argumento?" },
+        { rotulo:"Encadear", texto:"Os itens formam um percurso, em que cada um prepara o seguinte e conduz o leitor até a proposta?" },
+        { rotulo:"Traduzir a proposta", texto:"Ao final da leitura, fica claro o que será projetado, para qual problema e com qual recorte?" }
+      ],
+      orientacao: "Ler de uma vez: o documento se compreende numa leitura, sem que seja preciso voltar e reler para reconstruir o argumento? Encadear: os itens formam um percurso, em que cada um prepara o seguinte e conduz o leitor até a proposta? Traduzir a proposta: ao final da leitura, fica claro o que será projetado, para qual problema e com qual recorte?"
+    }]
+  }
 ];
 
 // ══════════════════════════════════════════════════════
@@ -812,7 +814,7 @@ async function loadWorkList() {
     // Sincronizar localEvals com o que veio do Firebase
     if (evFirebase) localEvals[tid] = evFirebase;
     const done = ev.saved === true;
-    const nota = done ? calcTotalFromEv(ev).toFixed(1) : null;
+    const nota = done ? calcTotalFromEv(ev).toFixed(2) : null;
 
     const card = document.createElement("div");
     card.className = "work-card" + (done ? " done" : "");
@@ -887,12 +889,25 @@ async function openWork(tid) {
 function buildCampos() {
   const container = document.getElementById("camposContainer");
   container.innerHTML = "";
+
+  // NOTA_INTRO — somente para professor (não coordenador)
+  if (currentUser && !currentUser.isCoord && typeof NOTA_INTRO !== "undefined") {
+    const introDiv = document.createElement("div");
+    introDiv.className = "nota-intro";
+    introDiv.innerHTML = NOTA_INTRO.map(p => `<p>${p}</p>`).join("");
+    container.appendChild(introDiv);
+  }
+
   CAMPOS.forEach(campo => {
     const card = document.createElement("div");
     card.className = "campo-card";
     card.innerHTML = `
       <div class="campo-header">
-        <div><span class="campo-num">${campo.num}</span><span class="campo-title">${campo.titulo}</span></div>
+        <div>
+          <span class="campo-num">${campo.num}</span>
+          <span class="campo-title">${campo.titulo}</span>
+          ${campo.itens ? `<div class="campo-itens">${campo.itens} · Peso ${campo.peso.toFixed(1)}</div>` : ''}
+        </div>
         <span class="campo-score-badge" id="badge-${campo.id}">—</span>
       </div>
       <div class="campo-body" id="body-${campo.id}"></div>`;
@@ -902,43 +917,62 @@ function buildCampos() {
     campo.criterios.forEach(crit => {
       const block = document.createElement("div");
       block.className = "criterio-block";
-      const orientHtml = crit.atencao
-        ? `<div class="orientacao">${crit.orientacao}<br><br><span class="atencao">⚠ Atenção: ${crit.atencao}</span></div>`
-        : `<div class="orientacao">${crit.orientacao}</div>`;
+
+      // Build perguntas orientadoras (structured) or fallback to orientacao text
+      let orientHtml = "";
+      if (crit.perguntas && crit.perguntas.length > 0) {
+        let perguntasHtml = '<div class="perguntas-box">';
+        let lastBloco = null;
+        crit.perguntas.forEach(p => {
+          if (p.bloco && p.bloco !== lastBloco) {
+            perguntasHtml += `<div class="bloco-label">${p.bloco}</div>`;
+            lastBloco = p.bloco;
+          }
+          perguntasHtml += `<div class="pergunta-item"><span class="rotulo">${p.rotulo}:</span> ${p.texto}</div>`;
+        });
+        perguntasHtml += '</div>';
+        orientHtml = perguntasHtml;
+      } else if (crit.orientacao) {
+        orientHtml = `<div class="orientacao">${crit.orientacao}</div>`;
+      }
+
+      // Description line
+      const descHtml = crit.descricao ? `<div class="orientacao" style="margin-bottom:0.5rem;border-left-color:var(--accent);font-weight:500;color:var(--text)">${crit.descricao}</div>` : '';
+
       block.innerHTML = `
         <div class="criterio-label">
           ${crit.nome}
           ${crit.critico ? '<span class="critico-tag">Critério crítico</span>' : ''}
         </div>
+        ${descHtml}
         ${orientHtml}
         <div class="nivel-selector" data-campo="${campo.id}" data-criterio="${crit.id}"></div>
         <div class="comment-area" id="ca-${campo.id}-${crit.id}">
-          <label>⚠ Comentário obrigatório — nota abaixo de 7</label>
+          <label>⚠ Comentário obrigatório — abaixo de Adequado</label>
           <textarea data-campo="${campo.id}" data-criterio="${crit.id}"
             placeholder="Indique o que está ausente ou inadequado neste critério..."></textarea>
         </div>`;
       body.appendChild(block);
-      buildNivelSelector(block.querySelector(".nivel-selector"), campo.id, crit.id);
+      buildNivelSelector(block.querySelector(".nivel-selector"), campo.id, crit.id, crit.peso);
     });
   });
-
-  buildNivelSelector(
-    document.querySelector('[data-campo="transversal"][data-criterio="org"].nivel-selector'),
-    "transversal","org"
-  );
 }
 
-function buildNivelSelector(container, campoId, critId) {
+function buildNivelSelector(container, campoId, critId, critPeso) {
   if (!container) return;
   container.innerHTML = "";
+  // critPeso = weight of this criterion (e.g. 4.0 for C1)
+  const peso = critPeso || 1.0;
   NIVEIS.forEach(n => {
     const btn = document.createElement("div");
     btn.className = "nivel-btn";
     btn.dataset.nivel = n.nivel;
     btn.dataset.campo = campoId;
     btn.dataset.criterio = critId;
-    btn.innerHTML = `<div class="nivel-name">${n.nome}</div><div class="nivel-pts">${n.pts.toFixed(2)}</div>`;
-    btn.onclick = () => selectNivel(campoId, critId, n.nivel, n.pts);
+    // Show weighted points: peso × pts / 2.50
+    const weightedPts = (peso * n.pts / 2.50);
+    btn.innerHTML = `<div class="nivel-name">${n.nome}</div><div class="nivel-pts">${weightedPts.toFixed(2)}</div>`;
+    btn.onclick = () => selectNivel(campoId, critId, n.nivel, n.pts, peso);
     container.appendChild(btn);
   });
 }
@@ -946,10 +980,11 @@ function buildNivelSelector(container, campoId, critId) {
 // ══════════════════════════════════════════════════════
 // SELECIONAR NÍVEL
 // ══════════════════════════════════════════════════════
-function selectNivel(campoId, critId, nivel, pts) {
+function selectNivel(campoId, critId, nivel, pts, peso) {
   if (!localEvals[currentWork]) localEvals[currentWork] = {};
   if (!localEvals[currentWork][campoId]) localEvals[currentWork][campoId] = {};
-  localEvals[currentWork][campoId][critId] = { nivel, pts };
+  // Store raw pts (scale value) and peso for weighted calculation
+  localEvals[currentWork][campoId][critId] = { nivel, pts, peso: peso || 1.0 };
 
   document.querySelectorAll(`.nivel-btn[data-campo="${campoId}"][data-criterio="${critId}"]`)
     .forEach(b => b.classList.toggle("selected", parseInt(b.dataset.nivel) === nivel));
@@ -962,26 +997,40 @@ function selectNivel(campoId, critId, nivel, pts) {
 function updateCampoScore(campoId) {
   const campoEv = (localEvals[currentWork] || {})[campoId] || {};
   const campo = CAMPOS.find(c => c.id === campoId);
-  const criterios = campoId === "transversal" ? [{id:"org"}] : campo?.criterios || [];
+  if (!campo) return;
+  const criterios = campo.criterios || [];
 
-  let total = 0, count = 0;
+  // Weighted score: Σ(peso × pts / 2.50) for evaluated criteria
+  let weightedTotal = 0, count = 0;
+  let maxWeighted = 0;
   criterios.forEach(c => {
-    if (campoEv[c.id] !== undefined) { total += campoEv[c.id].pts; count++; }
+    const peso = c.peso || campo.peso || 1.0;
+    maxWeighted += peso; // max = peso × 2.50/2.50 = peso
+    if (campoEv[c.id] !== undefined) {
+      weightedTotal += (peso * campoEv[c.id].pts / 2.50);
+      count++;
+    }
   });
-  const nota = count === 0 ? null : (total / (criterios.length * 2.5)) * 10;
 
   const badge = document.getElementById("badge-" + campoId);
   if (badge) {
-    badge.textContent = nota === null ? "—" : nota.toFixed(1) + "/10";
-    badge.className = "campo-score-badge" + (nota === null ? "" : nota < 7 ? " low" : " scored");
+    if (count === 0) {
+      badge.textContent = "—";
+      badge.className = "campo-score-badge";
+    } else {
+      badge.textContent = weightedTotal.toFixed(2) + "/" + maxWeighted.toFixed(2);
+      // Below 70% of max is "low"
+      const pct = weightedTotal / maxWeighted;
+      badge.className = "campo-score-badge" + (pct < 0.7 ? " low" : " scored");
+    }
   }
 
+  // Comment visibility: below Adequado (nivel <= 2: Não entrega, Insuficiente, Parcial)
   criterios.forEach(c => {
     const critEv = campoEv[c.id];
     const caEl = document.getElementById(`ca-${campoId}-${c.id}`);
     if (caEl && critEv !== undefined) {
-      const n = (critEv.pts / 2.5) * 10;
-      caEl.classList.toggle("visible", n < 7);
+      caEl.classList.toggle("visible", critEv.nivel <= 2);
     }
   });
 }
@@ -990,20 +1039,23 @@ function updateCampoScore(campoId) {
 // CALCULAR TOTAL
 // ══════════════════════════════════════════════════════
 function calcTotalFromEv(ev) {
-  let pts = 0, max = 0;
+  // Weighted formula: nota = Σ(peso × pts / 2.50)
+  // Sum of all pesos = 10.0, so nota is already on 0–10 scale
+  let nota = 0, count = 0;
   CAMPOS.forEach(campo => {
     campo.criterios.forEach(c => {
-      max += 2.5;
+      const peso = c.peso || campo.peso || 1.0;
       const v = (ev[campo.id] || {})[c.id];
-      if (v !== undefined) pts += v.pts;
+      if (v !== undefined) {
+        nota += (peso * v.pts / 2.50);
+        count++;
+      }
     });
   });
-  max += 2.5;
-  if ((ev.transversal || {}).org !== undefined) pts += ev.transversal.org.pts;
-  if (max === 0) return 0;
+  if (count === 0) return 0;
   const ajuste = parseFloat(ev.ajusteNota);
   if (!isNaN(ajuste) && ajuste >= 0 && ajuste <= 10) return ajuste;
-  return Math.round((pts/max)*100)/10;
+  return Math.round(nota * 100) / 100;
 }
 
 function updateScore() {
@@ -1012,7 +1064,7 @@ function updateScore() {
   const aj = parseFloat(document.getElementById("ajusteNota")?.value);
   const total = !isNaN(aj) && aj >= 0 && aj <= 10 ? aj : calcTotalFromEv(ev);
   const el = document.getElementById("scoreVal");
-  if (el) el.textContent = total > 0 ? total.toFixed(1) : "—";
+  if (el) el.textContent = total > 0 ? total.toFixed(2) : "—";
 }
 
 function buildScoreSummary() {
@@ -1021,27 +1073,33 @@ function buildScoreSummary() {
   if (!container) return;
   container.innerHTML = "";
 
-  [...CAMPOS.map(c=>({id:c.id,label:c.num.replace("Campo ","C"),criterios:c.criterios})),
-   {id:"transversal",label:"Org.",criterios:[{id:"org"}]}
-  ].forEach(f => {
-    const campoEv = ev[f.id] || {};
-    let total=0,count=0;
-    f.criterios.forEach(c => { if(campoEv[c.id]!==undefined){total+=campoEv[c.id].pts;count++;} });
-    const nota = count===0 ? null : (total/(f.criterios.length*2.5))*10;
+  CAMPOS.forEach(campo => {
+    const campoEv = ev[campo.id] || {};
+    let weightedTotal = 0, count = 0, maxWeighted = 0;
+    campo.criterios.forEach(c => {
+      const peso = c.peso || campo.peso || 1.0;
+      maxWeighted += peso;
+      if (campoEv[c.id] !== undefined) {
+        weightedTotal += (peso * campoEv[c.id].pts / 2.50);
+        count++;
+      }
+    });
+    const pct = count === 0 ? null : weightedTotal / maxWeighted;
     const item = document.createElement("div");
     item.className = "score-item";
     item.innerHTML = `
-      <div class="s-label">${f.label}</div>
-      <div class="s-val" style="color:${nota===null?'#ccc':nota<7?'var(--danger)':'var(--accent)'}">
-        ${nota===null?"—":nota.toFixed(1)}
-      </div>`;
+      <div class="s-label">${campo.num}</div>
+      <div class="s-val" style="color:${pct===null?'#ccc':pct<0.7?'var(--danger)':'var(--accent)'}">
+        ${pct===null ? "—" : weightedTotal.toFixed(2)}
+      </div>
+      <div class="s-label" style="font-size:0.55rem;margin-top:1px">${count>0 ? 'de '+maxWeighted.toFixed(2) : ''}</div>`;
     container.appendChild(item);
   });
 
   const totalItem = document.createElement("div");
   totalItem.className = "score-item total";
   const t = calcTotalFromEv(ev);
-  totalItem.innerHTML = `<div class="s-label">TOTAL</div><div class="s-val">${t>0?t.toFixed(1):"—"}</div>`;
+  totalItem.innerHTML = `<div class="s-label">NOTA</div><div class="s-val">${t>0?t.toFixed(2):"—"}</div><div class="s-label" style="font-size:0.55rem;margin-top:1px">de 10,00</div>`;
   container.appendChild(totalItem);
 }
 
@@ -1059,17 +1117,14 @@ function restoreEval(ev) {
     campo.criterios.forEach(c => {
       const v = (ev[campo.id]||{})[c.id];
       if (v !== undefined) {
+        // Ensure peso is stored (backward compat)
+        if (v.peso === undefined) v.peso = c.peso || campo.peso || 1.0;
         document.querySelectorAll(`.nivel-btn[data-campo="${campo.id}"][data-criterio="${c.id}"]`)
           .forEach(b => b.classList.toggle("selected", parseInt(b.dataset.nivel) === v.nivel));
         updateCampoScore(campo.id);
       }
     });
   });
-  if ((ev.transversal||{}).org !== undefined) {
-    document.querySelectorAll(`.nivel-btn[data-campo="transversal"][data-criterio="org"]`)
-      .forEach(b => b.classList.toggle("selected", parseInt(b.dataset.nivel) === ev.transversal.org.nivel));
-    updateCampoScore("transversal");
-  }
   document.querySelectorAll("textarea[data-campo]").forEach(ta => {
     const k = `${ta.dataset.campo}_${ta.dataset.criterio}_comment`;
     if (ev[k]) ta.value = ev[k];
@@ -1518,6 +1573,19 @@ async function loadResultados() {
     const n2 = ev2 ? calcTotalFromEv(ev2) : null;
     const media = (n1!==null && n2!==null) ? ((n1+n2)/2) : null;
 
+    // Build per-criterion weighted breakdown
+    function buildCriterioBreakdown(ev) {
+      if (!ev) return "";
+      return CAMPOS.map(campo => {
+        const crit = campo.criterios[0];
+        const peso = crit.peso || campo.peso || 1.0;
+        const v = (ev[campo.id]||{})[crit.id];
+        if (v === undefined) return "";
+        const wp = (peso * v.pts / 2.50);
+        return `<span style="font-size:0.75rem;color:var(--muted)">${campo.num}: <strong style="color:${wp/peso<0.7?'var(--danger)':'var(--accent)'}">${wp.toFixed(2)}</strong>/${peso.toFixed(2)}</span>`;
+      }).filter(Boolean).join(" · ");
+    }
+
     const card = document.createElement("div");
     card.className = "result-card";
     card.innerHTML = `
@@ -1525,16 +1593,18 @@ async function loadResultados() {
       <div class="result-scores">
         <div class="result-score">
           <span class="rs-label">Avaliador 1: </span>
-          <span class="rs-val ${n1!==null&&n1<7?'low':''}">${n1!==null?n1.toFixed(1):"Pendente"}</span>
+          <span class="rs-val ${n1!==null&&n1<7?'low':''}">${n1!==null?n1.toFixed(2):"Pendente"}</span>
+          <div style="margin-top:3px">${buildCriterioBreakdown(ev1)}</div>
         </div>
         <div class="result-score">
           <span class="rs-label">Avaliador 2: </span>
-          <span class="rs-val ${n2!==null&&n2<7?'low':''}">${n2!==null?n2.toFixed(1):"Pendente"}</span>
+          <span class="rs-val ${n2!==null&&n2<7?'low':''}">${n2!==null?n2.toFixed(2):"Pendente"}</span>
+          <div style="margin-top:3px">${buildCriterioBreakdown(ev2)}</div>
         </div>
       </div>
       <div>
         <span style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em">Média Final: </span>
-        <span class="result-avg ${media!==null&&media<7?'low':''}">${media!==null?media.toFixed(1):"—"}</span>
+        <span class="result-avg ${media!==null&&media<7?'low':''}">${media!==null?media.toFixed(2):"—"}</span>
       </div>`;
     grid.appendChild(card);
   });
@@ -1567,16 +1637,36 @@ async function liberarResultados() {
     const n2  = ev2 ? calcTotalFromEv(ev2) : null;
     const media = (n1!==null && n2!==null) ? ((n1+n2)/2) : null;
 
-    // Montar comentários das fichas
+    // Build weighted breakdown text per evaluator
+    function montarFichaTexto(ev) {
+      if (!ev) return "";
+      const linhas = CAMPOS.map(campo => {
+        const crit = campo.criterios[0];
+        const peso = crit.peso || campo.peso || 1.0;
+        const v = (ev[campo.id]||{})[crit.id];
+        if (v === undefined) return null;
+        const wp = (peso * v.pts / 2.50);
+        const nivelNome = NIVEIS.find(n=>n.nivel===v.nivel)?.nome || "";
+        let linha = `${campo.num} — ${campo.titulo}: ${wp.toFixed(2)} de ${peso.toFixed(2)} (${nivelNome})`;
+        const commentKey = `${campo.id}_${crit.id}_comment`;
+        if (ev[commentKey]) linha += `\n   Comentário: ${ev[commentKey]}`;
+        return linha;
+      }).filter(Boolean);
+      if (ev.generalComment) linhas.push(`\nComentário geral: ${ev.generalComment}`);
+      return linhas.join("\n");
+    }
+
+    const ficha1 = ev1 ? montarFichaTexto(ev1) : "";
+    const ficha2 = ev2 ? montarFichaTexto(ev2) : "";
     const comentarios = [];
-    if (ev1?.generalComment) comentarios.push("Avaliador 1: " + ev1.generalComment);
-    if (ev2?.generalComment) comentarios.push("Avaliador 2: " + ev2.generalComment);
+    if (ficha1) comentarios.push("── Avaliador 1 ──\n" + ficha1);
+    if (ficha2) comentarios.push("── Avaliador 2 ──\n" + ficha2);
 
     resultados.push({
       nome: a.nome, email: a.email, codigo: a.codigo, tid,
-      n1: n1?.toFixed(1) ?? "Pendente",
-      n2: n2?.toFixed(1) ?? "Pendente",
-      media: media?.toFixed(1) ?? "Aguardando ambas as avaliações",
+      n1: n1?.toFixed(2) ?? "Pendente",
+      n2: n2?.toFixed(2) ?? "Pendente",
+      media: media?.toFixed(2) ?? "Aguardando ambas as avaliações",
       comentarios: comentarios.join("\n\n") || "Nenhum comentário geral registrado.",
       pronto: media !== null
     });
@@ -1718,10 +1808,10 @@ async function exportarNotas() {
     const at    = atrib[tid] || {};
     const ev1   = at.av1 ? (avaliacoes[tid]||{})[at.av1] : null;
     const ev2   = at.av2 ? (avaliacoes[tid]||{})[at.av2] : null;
-    const n1    = ev1 ? calcTotalFromEv(ev1).toFixed(1) : "Pendente";
-    const n2    = ev2 ? calcTotalFromEv(ev2).toFixed(1) : "Pendente";
+    const n1    = ev1 ? calcTotalFromEv(ev1).toFixed(2) : "Pendente";
+    const n2    = ev2 ? calcTotalFromEv(ev2).toFixed(2) : "Pendente";
     const media = (ev1 && ev2)
-      ? ((calcTotalFromEv(ev1) + calcTotalFromEv(ev2)) / 2).toFixed(1)
+      ? ((calcTotalFromEv(ev1) + calcTotalFromEv(ev2)) / 2).toFixed(2)
       : "—";
     const turma = a.turma || "Não informada";
     linhas.push('"' + a.nome + '","' + a.email + '","' + turma + '","' + a.codigo + '",' + n1 + ',' + n2 + ',' + media);
@@ -1802,25 +1892,22 @@ function montarFichaTexto(ev, titulo) {
   if (!ev) return titulo + ": Avaliação pendente.\n";
   let ficha = titulo + "\n" + "─".repeat(40) + "\n";
   CAMPOS.forEach(campo => {
-    const campoEv = ev[campo.id] || {};
-    let pts = 0, count = 0, comps = [];
-    campo.criterios.forEach(c => {
-      const v = campoEv[c.id];
-      if (v !== undefined) { pts += v.pts; count++; }
-      const ck = campo.id + "_" + c.id + "_comment";
-      if (ev[ck]) comps.push("  " + c.nome + ": " + ev[ck]);
-    });
-    const nota = count > 0 ? ((pts/(campo.criterios.length*2.5))*10).toFixed(1) : "—";
-    ficha += campo.num + " — " + campo.titulo + ": " + nota + "/10\n";
-    if (comps.length) ficha += comps.join("\n") + "\n";
+    const crit = campo.criterios[0];
+    const peso = crit.peso || campo.peso || 1.0;
+    const v = (ev[campo.id]||{})[crit.id];
+    if (v !== undefined) {
+      const wp = (peso * v.pts / 2.50);
+      const nivelNome = NIVEIS.find(n=>n.nivel===v.nivel)?.nome || "";
+      ficha += campo.num + " — " + campo.titulo + ": " + wp.toFixed(2) + " de " + peso.toFixed(2) + " (" + nivelNome + ")\n";
+      const commentKey = campo.id + "_" + crit.id + "_comment";
+      if (ev[commentKey]) ficha += "   Comentário: " + ev[commentKey] + "\n";
+    } else {
+      ficha += campo.num + " — " + campo.titulo + ": —\n";
+    }
   });
-  const tEv = (ev.transversal||{}).org;
-  if (tEv) {
-    ficha += "Organização Geral: " + ((tEv.pts/2.5)*10).toFixed(1) + "/10\n";
-    const tc = ev["transversal_org_comment"];
-    if (tc) ficha += "  " + tc + "\n";
-  }
   if (ev.generalComment) ficha += "\nComentário Geral:\n" + ev.generalComment + "\n";
+  const total = calcTotalFromEv(ev);
+  ficha += "\nNota Total: " + (total > 0 ? total.toFixed(2) : "—") + " / 10,00\n";
   return ficha;
 }
 
@@ -1849,7 +1936,7 @@ async function verificarResultadoPublico() {
   const ev2 = at.av2 ? (avaliacoes[tid]||{})[at.av2] : null;
   const n1  = ev1 ? calcTotalFromEv(ev1) : null;
   const n2  = ev2 ? calcTotalFromEv(ev2) : null;
-  const media = (n1!==null && n2!==null) ? ((n1+n2)/2).toFixed(1) : "—";
+  const media = (n1!==null && n2!==null) ? ((n1+n2)/2).toFixed(2) : "—";
 
   const ficha1 = montarFichaTexto(ev1, "Avaliação 1");
   const ficha2 = montarFichaTexto(ev2, "Avaliação 2");
@@ -1867,11 +1954,11 @@ async function verificarResultadoPublico() {
         <div style="display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap">
           <div style="text-align:center;padding:0.75rem 1.5rem;background:#f7f5f2;border-radius:8px;border:1px solid #e0dbd3">
             <div style="font-size:0.7rem;color:#7a7570;text-transform:uppercase;letter-spacing:0.07em">Avaliador 1</div>
-            <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:#1a3a2a">${n1!==null?n1.toFixed(1):"—"}</div>
+            <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:#1a3a2a">${n1!==null?n1.toFixed(2):"—"}</div>
           </div>
           <div style="text-align:center;padding:0.75rem 1.5rem;background:#f7f5f2;border-radius:8px;border:1px solid #e0dbd3">
             <div style="font-size:0.7rem;color:#7a7570;text-transform:uppercase;letter-spacing:0.07em">Avaliador 2</div>
-            <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:#1a3a2a">${n2!==null?n2.toFixed(1):"—"}</div>
+            <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:#1a3a2a">${n2!==null?n2.toFixed(2):"—"}</div>
           </div>
           <div style="text-align:center;padding:0.75rem 1.5rem;background:#1a3a2a;border-radius:8px">
             <div style="font-size:0.7rem;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.07em">Média Final</div>
